@@ -5,7 +5,7 @@ import User from '@/models/User';
 export async function GET(request, { params }) {
   try {
     await dbConnect();
-    const { email } = params;
+    const { email } = await params;
 
     const user = await User.findOne({ email: email.toLowerCase() }).select('role').lean();
 
