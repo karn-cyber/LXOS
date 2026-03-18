@@ -42,6 +42,7 @@ export async function AuthGuard({ children }: { children: React.ReactNode }) {
       try {
         // Try to get role from RU data, default to GUEST if not found
         let userRole = getRoleFromRUData(email) || 'GUEST';
+        console.log(`[AuthGuard] Creating user ${email} with role: ${userRole}`);
         
         await User.create({
           name: user.firstName || email.split('@')[0],
