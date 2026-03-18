@@ -1,22 +1,25 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
-import { SignInButton, SignUpButton, Show } from '@clerk/nextjs';
+import { SignInButton, SignUpButton } from '@clerk/nextjs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Building2, Lock, Mail, AlertCircle } from 'lucide-react';
+import { Building2, Lock, Mail } from 'lucide-react';
 
 export default function SignInPage() {
   const { isSignedIn, isLoaded } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     if (isLoaded && isSignedIn) {
-      router.push('/dashboard');
+      // Redirect to dashboard after successful auth
+      const redirectUrl = searchParams.get('redirect_url') || '/dashboard';
+      router.push(redirectUrl);
     }
-  }, [isLoaded, isSignedIn, router]);
+  }, [isLoaded, isSignedIn, router, searchParams]);
 
   if (!isLoaded) {
     return (
@@ -54,13 +57,21 @@ export default function SignInPage() {
 
           {/* Auth Buttons */}
           <div className="space-y-3">
-            <SignInButton mode="modal">
+            <SignInButton 
+              mode="modal"
+              forceRedirectUrl="/dashboard"
+              fallbackRedirectUrl="/dashboard"
+            >
               <Button className="w-full" size="lg">
                 <Mail className="h-4 w-4 mr-2" />
                 Sign In with Email
               </Button>
             </SignInButton>
-            <SignUpButton mode="modal">
+            <SignUpButton 
+              mode="modal"
+              forceRedirectUrl="/dashboard"
+              fallbackRedirectUrl="/dashboard"
+            >
               <Button variant="outline" className="w-full" size="lg">
                 Create Account
               </Button>
@@ -78,13 +89,13 @@ export default function SignInPage() {
           </div>
 
           {/* Support */}
-          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
-            <div className="flex gap-2">
-              <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-amber-900 dark:text-amber-100">
-                Having trouble? Contact the administrator at admin@lxos.edu
-              </p>
-            </div>
+          <div className="bg-zinc-100 dark:bg-zinc-900 rounded-lg p-4 text-center">
+            <p className="text-xs text-zinc-600 dark:text-zinc-400">
+              Having trouble? Contact{' '}
+              <a href="mailto:support@lxos.edu" className="text-blue-600 dark:text-blue-400 font-medium hover:underline">
+                support@lxos.edu
+              </a>
+            </p>
           </div>
         </CardContent>
       </Card>
