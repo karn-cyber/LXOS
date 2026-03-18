@@ -1,15 +1,12 @@
-import { SessionProvider } from 'next-auth/react';
-import { auth } from '@/auth';
+import { AuthGuard } from '@/components/auth-guard';
 import DashboardSidebar from '@/components/dashboard/sidebar';
 
 export default async function DashboardLayout({ children }) {
-    const session = await auth();
-
     return (
-        <SessionProvider session={session}>
+        <AuthGuard>
             <DashboardSidebar>
                 {children}
             </DashboardSidebar>
-        </SessionProvider>
+        </AuthGuard>
     );
 }
