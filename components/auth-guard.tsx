@@ -38,13 +38,20 @@ export async function AuthGuard({ children }: { children: React.ReactNode }) {
     const dbUser = await User.findOne({ email: email.toLowerCase() }).lean();
 
     if (!dbUser && !ADMIN_EXCEPTIONS.includes(email)) {
-      const newUser = await User.create({
-        name: user.firstName || email.split('@')[0],
-        email: email.toLowerCase(),
-        password: Math.random().toString(36).slice(-8),
-        role: 'GUEST',
-        isActive: true,
-      });
+      try {
+        await User.create({
+          name: user.firstName || email.split('@')[0],
+          email: email.toLowerCase(),
+          password: Math.random().toString(36).slice(-8),
+          role: 'GUEST',
+          isActive: true,
+        });
+      } catch (err: any) {
+        // Handle duplicate key error (user might have been created by another request)
+        if (err.code !== 11000) {
+          throw err;
+        }
+      }
     }
 
     return children;
