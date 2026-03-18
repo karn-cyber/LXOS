@@ -23,12 +23,16 @@ export async function GET(request) {
         if (category) filter.category = category;
         if (clubId) filter.clubId = clubId;
         if (clanId) filter.clanId = clanId;
+        if (session.user.role !== 'ADMIN') {
+            filter.status = 'APPROVED';
+        }
 
         const achievements = await Achievement.find(filter)
-            .sort({ date: -1 })
+            .sort({ achievedDate: -1 })
             .populate('eventId', 'title type')
             .populate('clubId', 'name category')
             .populate('clanId', 'name color')
+            .populate('createdBy', 'name email')
             .lean();
 
         const formattedAchievements = achievements.map(achievement => ({
@@ -64,6 +68,7 @@ export async function POST(request) {
             description,
             category,
             date,
+            achievedDate,
             eventId,
             clubId,
             clanId,
@@ -72,15 +77,20 @@ export async function POST(request) {
             images,
         } = body;
 
-        if (!title || !description || !category || !date) {
+        const effectiveDate = date || achievedDate;
+
+        if (!title || !description || !category || !effectiveDate) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
+
+        const requiresAdminApproval = session.user.role !== 'ADMIN';
+        const initialStatus = requiresAdminApproval ? 'PENDING' : 'APPROVED';
 
         const achievement = await Achievement.create({
             title,
             description,
             category,
-            achievedDate: new Date(date),
+            achievedDate: new Date(effectiveDate),
             eventId: eventId || null,
             clubId: clubId || null,
             clanId: clanId || null,
@@ -89,12 +99,28 @@ export async function POST(request) {
             images: images || [],
             createdBy: session.user.id,
             semester: body.semester || 'Spring 2026',
+            status: initialStatus,
+            approvedBy: initialStatus === 'APPROVED' ? session.user.id : null,
+            approvedAt: initialStatus === 'APPROVED' ? new Date() : null,
         });
 
-        // Update clan points if points awarded and clan specified
-        if (clanId && pointsAwarded > 0) {
+        // Update clan points only when already approved (admin-created)
+        if (!requiresAdminApproval && clanId && pointsAwarded > 0) {
             await Clan.findByIdAndUpdate(clanId, {
                 $inc: { points: pointsAwarded },
+            });
+        }
+
+        // Create approval request for non-admin submissions
+        if (requiresAdminApproval) {
+            const { default: Approval } = await import('@/models/Approval');
+            await Approval.create({
+                type: 'ACHIEVEMENT',
+                entityId: achievement._id,
+                entityModel: 'Achievement',
+                requestedBy: session.user.id,
+                status: 'PENDING',
+                priority: pointsAwarded > 0 ? 'HIGH' : 'MEDIUM',
             });
         }
 
@@ -102,6 +128,7 @@ export async function POST(request) {
             .populate('eventId', 'title type')
             .populate('clubId', 'name category')
             .populate('clanId', 'name color')
+            .populate('createdBy', 'name email')
             .lean();
 
         return NextResponse.json({

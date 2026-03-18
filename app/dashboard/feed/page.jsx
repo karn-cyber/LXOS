@@ -10,10 +10,12 @@ import { Calendar, Trophy, Users } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 
-async function getAllUpdates() {
+async function getAllUpdates(session) {
     await dbConnect();
 
-    const updates = await Achievement.find({})
+    const filter = session?.user?.role === 'ADMIN' ? {} : { status: 'APPROVED' };
+
+    const updates = await Achievement.find(filter)
         .sort({ achievedDate: -1 })
         .limit(50)
         .populate('clubId', 'name category')
@@ -49,7 +51,7 @@ export default async function FeedPage() {
         redirect('/login');
     }
 
-    const updates = await getAllUpdates();
+    const updates = await getAllUpdates(session);
 
     return (
         <div className="max-w-4xl mx-auto space-y-6">

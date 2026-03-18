@@ -35,6 +35,8 @@ import {
 import { toast } from 'sonner';
 import { ArrowLeft, Save, Trash2 } from 'lucide-react';
 import { hasPermission, PERMISSIONS } from '@/lib/permissions';
+import { Badge } from '@/components/ui/badge';
+import AchievementApprovalActions from '@/components/achievements/approval-actions';
 
 const achievementSchema = z.object({
     title: z.string().min(1, 'Achievement title is required'),
@@ -78,7 +80,7 @@ export default function EditAchievementPage() {
             setAchievement(data);
             
             // Format date for input
-            const formattedDate = data.date ? new Date(data.date).toISOString().split('T')[0] : '';
+            const formattedDate = data.achievedDate ? new Date(data.achievedDate).toISOString().split('T')[0] : '';
             
             // Set form values
             form.reset({
@@ -200,6 +202,9 @@ export default function EditAchievementPage() {
         );
     }
 
+    const isAdmin = session?.user?.role === 'ADMIN';
+    const isPending = achievement?.status === 'PENDING';
+
     return (
         <div className="container mx-auto py-6">
             <div className="flex items-center justify-between mb-6">
@@ -215,15 +220,31 @@ export default function EditAchievementPage() {
                         <p className="text-gray-600">Update achievement information and details</p>
                     </div>
                 </div>
-                <Button
-                    onClick={handleDelete}
-                    variant="destructive"
-                    disabled={deleteLoading}
-                    className="ml-4"
-                >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    {deleteLoading ? 'Deleting...' : 'Delete Achievement'}
-                </Button>
+                <div className="flex items-center gap-2">
+                    <Badge variant={
+                        achievement?.status === 'APPROVED'
+                            ? 'default'
+                            : achievement?.status === 'REJECTED'
+                                ? 'destructive'
+                                : 'secondary'
+                    }>
+                        {achievement?.status || 'PENDING'}
+                    </Badge>
+
+                    {isAdmin && isPending && (
+                        <AchievementApprovalActions achievementId={params.id} />
+                    )}
+
+                    <Button
+                        onClick={handleDelete}
+                        variant="destructive"
+                        disabled={deleteLoading}
+                        className="ml-2"
+                    >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        {deleteLoading ? 'Deleting...' : 'Delete Achievement'}
+                    </Button>
+                </div>
             </div>
 
             <Card>

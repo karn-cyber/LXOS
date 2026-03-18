@@ -17,6 +17,7 @@ import '@/models/Expense';
 import '@/models/Booking';
 import '@/models/Club';
 import '@/models/Clan';
+import '@/models/Achievement';
 
 async function getPendingApprovals() {
     await dbConnect();
@@ -187,6 +188,8 @@ export default async function ApprovalsPage() {
                                                     ? `/dashboard/events/${approval.entity._id}`
                                                     : approval.entityModel === 'Expense' || approval.type === 'EXPENSE'
                                                         ? `/dashboard/expenses/${approval.entity._id}`
+                                                        : approval.entityModel === 'Achievement' || approval.type === 'ACHIEVEMENT'
+                                                            ? `/dashboard/achievements/${approval.entity._id}/edit`
                                                         : `/dashboard/approvals`
                                             }>
                                                 <Button size="sm">Review</Button>

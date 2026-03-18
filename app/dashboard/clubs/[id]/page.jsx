@@ -13,7 +13,7 @@ import Link from 'next/link';
 import ClubUpdates from '@/components/clubs/club-updates';
 import BudgetController from '@/components/admin/budget-controller';
 
-async function getClubData(id) {
+async function getClubData(id, session) {
     try {
         // Ensure ID is valid Mongo ID
         if (!id || !id.match(/^[0-9a-fA-F]{24}$/)) return null;
@@ -29,7 +29,16 @@ async function getClubData(id) {
             .lean();
 
         // Get club achievements/updates
-        const updates = await Achievement.find({ clubId: id })
+        const updatesFilter = { clubId: id };
+
+        if (session?.user?.role !== 'ADMIN') {
+            updatesFilter.$or = [
+                { status: 'APPROVED' },
+                { createdBy: session.user.id },
+            ];
+        }
+
+        const updates = await Achievement.find(updatesFilter)
             .sort({ achievedDate: -1 })
             .lean();
 
@@ -60,7 +69,7 @@ export default async function ClubDetailPage(props) {
 
     const { id } = params;
     console.log(`[ClubDetail] Fetching data for club ID: ${id}`);
-    const data = await getClubData(id);
+    const data = await getClubData(id, session);
 
     if (!data) {
         redirect('/dashboard/clubs');
@@ -200,7 +209,7 @@ export default async function ClubDetailPage(props) {
                                         <Link key={event._id} href={`/dashboard/events/${event._id}`} className="block">
                                             <div className="flex items-center justify-between p-4 border rounded-lg hover:border-zinc-400 dark:hover:border-zinc-700 transition-colors">
                                                 <div className="flex items-start gap-4">
-                                                    <div className="h-12 w-12 bg-zinc-100 dark:bg-zinc-800 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                    <div className="h-12 w-12 bg-zinc-100 dark:bg-zinc-800 rounded-lg flex items-center justify-center shrink-0">
                                                         <Calendar className="h-6 w-6 text-zinc-500" />
                                                     </div>
                                                     <div>

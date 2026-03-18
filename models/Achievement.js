@@ -55,6 +55,24 @@ const AchievementSchema = new mongoose.Schema({
         ref: 'User',
         required: true,
     },
+    status: {
+        type: String,
+        enum: ['PENDING', 'APPROVED', 'REJECTED'],
+        default: 'PENDING',
+    },
+    approvedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        default: null,
+    },
+    approvedAt: {
+        type: Date,
+        default: null,
+    },
+    rejectionReason: {
+        type: String,
+        default: null,
+    },
 }, {
     timestamps: true,
 });
@@ -62,5 +80,6 @@ const AchievementSchema = new mongoose.Schema({
 // Index for searching
 AchievementSchema.index({ title: 'text', description: 'text' });
 AchievementSchema.index({ semester: 1, category: 1 });
+AchievementSchema.index({ status: 1, achievedDate: -1 });
 
 export default mongoose.models.Achievement || mongoose.model('Achievement', AchievementSchema);

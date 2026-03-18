@@ -11,11 +11,13 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Trophy, Calendar, Users } from 'lucide-react';
 import Link from 'next/link';
 
-async function getAchievements() {
+async function getAchievements(session) {
     await dbConnect();
 
-    const achievements = await Achievement.find()
-        .sort({ date: -1 })
+    const filter = session?.user?.role === 'ADMIN' ? {} : { status: 'APPROVED' };
+
+    const achievements = await Achievement.find(filter)
+        .sort({ achievedDate: -1 })
         .populate('eventId', 'title type')
         .populate('clubId', 'name category')
         .populate('clanId', 'name color')
@@ -37,7 +39,7 @@ export default async function AchievementsPage() {
         redirect('/login');
     }
 
-    const achievements = await getAchievements();
+    const achievements = await getAchievements(session);
     const canCreate = ['ADMIN', 'LX_TEAM'].includes(session.user.role);
 
     return (
@@ -84,7 +86,7 @@ export default async function AchievementsPage() {
                         <Card key={achievement._id} className="h-full hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-colors">
                             <CardHeader>
                                 <div className="flex items-start gap-3">
-                                    <div className="h-10 w-10 rounded-lg bg-yellow-100 dark:bg-yellow-950 flex items-center justify-center flex-shrink-0">
+                                    <div className="h-10 w-10 rounded-lg bg-yellow-100 dark:bg-yellow-950 flex items-center justify-center shrink-0">
                                         <Trophy className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
                                     </div>
                                     <div className="flex-1 min-w-0">

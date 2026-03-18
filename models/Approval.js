@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const ApprovalSchema = new mongoose.Schema({
     type: {
         type: String,
-        enum: ['EVENT', 'BOOKING', 'EXPENSE', 'BUDGET'],
+        enum: ['EVENT', 'BOOKING', 'EXPENSE', 'BUDGET', 'ACHIEVEMENT'],
         required: true,
     },
     entityId: {
@@ -14,7 +14,7 @@ const ApprovalSchema = new mongoose.Schema({
     entityModel: {
         type: String,
         required: true,
-        enum: ['Event', 'Booking', 'Expense', 'Club', 'Clan'],
+        enum: ['Event', 'Booking', 'Expense', 'Club', 'Clan', 'Achievement'],
     },
     requestedBy: {
         type: mongoose.Schema.Types.ObjectId,

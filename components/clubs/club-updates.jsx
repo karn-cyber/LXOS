@@ -93,7 +93,7 @@ export default function ClubUpdates({ clubId, updates, canPost }) {
             const payload = {
                 ...data,
                 clubId,
-                achievedDate: new Date(),
+                date: new Date().toISOString(),
                 category: 'Other', // General update
                 images: imageUrl ? [imageUrl] : [],
             };
@@ -106,8 +106,8 @@ export default function ClubUpdates({ clubId, updates, canPost }) {
 
             if (response.ok) {
                 toast({
-                    title: 'Update posted',
-                    description: 'Your update has been published successfully',
+                    title: 'Update submitted',
+                    description: 'Your update is pending admin approval before it appears to others.',
                 });
                 form.reset();
                 setImageUrl(null);
@@ -161,7 +161,7 @@ export default function ClubUpdates({ clubId, updates, canPost }) {
                                             <FormControl>
                                                 <Textarea
                                                     placeholder="Share what's happening..."
-                                                    className="resize-none min-h-[100px]"
+                                                    className="resize-none min-h-25"
                                                     {...field}
                                                 />
                                             </FormControl>
