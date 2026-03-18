@@ -59,10 +59,21 @@ export default function DashboardSidebar({ children }) {
         const fetchUserRole = async () => {
             if (!userEmail) return;
             try {
-                const response = await fetch(`/api/users/${encodeURIComponent(userEmail)}`);
-                if (response.ok) {
-                    const data = await response.json();
-                    setUserRole(data.role || 'GUEST');
+                // First check RU data
+                const ruResponse = await fetch(`/api/ru-users/${encodeURIComponent(userEmail)}`);
+                if (ruResponse.ok) {
+                    const ruData = await ruResponse.json();
+                    if (ruData.found && ruData.role) {
+                        setUserRole(ruData.role);
+                        return;
+                    }
+                }
+
+                // Fall back to database
+                const dbResponse = await fetch(`/api/users/${encodeURIComponent(userEmail)}`);
+                if (dbResponse.ok) {
+                    const dbData = await dbResponse.json();
+                    setUserRole(dbData.role || 'GUEST');
                 }
             } catch (error) {
                 console.error('Failed to fetch user role:', error);

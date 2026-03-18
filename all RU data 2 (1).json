@@ -222,6 +222,19 @@
       "department": null
     },
     {
+      "userId": 1005,
+      "email": "sast@rishihood.edu.in",
+      "userType": "CLUB",
+      "profileImg": null,
+      "name": "",
+      "roleInfo": null,
+      "contactEmail": "sast@rishihood.edu.in",
+      "course": null,
+      "batch": null,
+      "designation": null,
+      "department": null
+    },
+    {
       "userId": 1007,
       "email": "robotics.club@rishihood.edu.in",
       "userType": "CLUB",

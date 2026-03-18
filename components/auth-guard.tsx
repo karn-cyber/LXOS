@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
 import { isEmailAllowed, isCollegeEmail, ADMIN_EXCEPTIONS } from '@/lib/clerk-config';
+import { getRoleFromRUData } from '@/lib/ru-data-mapper';
 
 /**
  * This component enforces email-based access control
@@ -39,11 +40,14 @@ export async function AuthGuard({ children }: { children: React.ReactNode }) {
 
     if (!dbUser && !ADMIN_EXCEPTIONS.includes(email)) {
       try {
+        // Try to get role from RU data, default to GUEST if not found
+        let userRole = getRoleFromRUData(email) || 'GUEST';
+        
         await User.create({
           name: user.firstName || email.split('@')[0],
           email: email.toLowerCase(),
           password: Math.random().toString(36).slice(-8),
-          role: 'GUEST',
+          role: userRole,
           isActive: true,
         });
       } catch (err: any) {
