@@ -1,8 +1,8 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { signOut, useSession } from 'next-auth/react';
+import { useClerk, useUser } from '@clerk/nextjs';
 import {
     Calendar,
     CalendarDays,
@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { hasPermission, PERMISSIONS } from '@/lib/permissions';
 
 const navigation = [
@@ -42,13 +42,36 @@ const navigation = [
 
 export default function DashboardSidebar({ children }) {
     const pathname = usePathname();
-    const { data: session } = useSession();
+    const { signOut } = useClerk();
+    const { user: clerkUser } = useUser();
+    const router = useRouter();
+    const [userRole, setUserRole] = useState('GUEST');
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
-    const userRole = session?.user?.role;
-    const userName = session?.user?.name || 'User';
-    const userEmail = session?.user?.email || '';
+    const userName = clerkUser?.firstName && clerkUser?.lastName 
+        ? `${clerkUser.firstName} ${clerkUser.lastName}`
+        : clerkUser?.firstName || 'User';
+    const userEmail = clerkUser?.primaryEmailAddress?.emailAddress || '';
     const userInitials = userName.split(' ').map(n => n[0]).join('').toUpperCase();
+
+    // Fetch user role from database
+    useEffect(() => {
+        const fetchUserRole = async () => {
+            if (!userEmail) return;
+            try {
+                const response = await fetch(`/api/users/${encodeURIComponent(userEmail)}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    setUserRole(data.role || 'GUEST');
+                }
+            } catch (error) {
+                console.error('Failed to fetch user role:', error);
+                setUserRole('GUEST');
+            }
+        };
+        
+        fetchUserRole();
+    }, [userEmail]);
 
     // Filter navigation based on permissions
     const filteredNavigation = navigation.filter(item => {
@@ -57,7 +80,8 @@ export default function DashboardSidebar({ children }) {
     });
 
     const handleSignOut = async () => {
-        await signOut({ callbackUrl: '/login' });
+        await signOut();
+        router.push('/');
     };
 
     return (
