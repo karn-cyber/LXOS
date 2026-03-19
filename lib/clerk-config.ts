@@ -9,6 +9,32 @@ export const ADMIN_EXCEPTIONS = [
   'finance@lxos.edu',
 ];
 
+// Import RU data for email verification
+import ruDataRaw from '../all RU data 2 (1).json' with { type: 'json' };
+
+// Ensure ruData is an array (handle both direct array and nested data.array structure)
+const ruData = Array.isArray(ruDataRaw) 
+  ? ruDataRaw 
+  : Array.isArray(ruDataRaw?.data) 
+    ? ruDataRaw.data 
+    : [];
+
+// Function to check if email exists in RU data
+function emailExistsInRUData(email: string): boolean {
+  if (!ruData.length) {
+    console.log('[clerk-config] RU data not loaded');
+    return false;
+  }
+
+  const normalizedEmail = email.toLowerCase().trim();
+  const found = ruData.some(record => 
+    record?.email?.toLowerCase().trim() === normalizedEmail
+  );
+  
+  console.log('[clerk-config] Email in RU data?', found, 'Email:', normalizedEmail);
+  return found;
+}
+
 // Function to check if email is allowed
 export function isEmailAllowed(email: string): boolean {
   if (!email) {
@@ -24,15 +50,11 @@ export function isEmailAllowed(email: string): boolean {
     return true;
   }
 
-  // Check if email has allowed domain
-  const domain = normalizedEmail.split('@')[1];
-  console.log('[clerk-config] Email:', normalizedEmail, 'Domain:', domain);
-  console.log('[clerk-config] Allowed domains:', ALLOWED_DOMAINS);
+  // Check if email exists in RU data
+  const existsInRU = emailExistsInRUData(normalizedEmail);
+  console.log('[clerk-config] Email allowed based on RU data check:', existsInRU);
   
-  const isAllowed = ALLOWED_DOMAINS.includes(domain);
-  console.log('[clerk-config] Is domain allowed?', isAllowed);
-  
-  return isAllowed;
+  return existsInRU;
 }
 
 // Function to check if email domain is verified college email
