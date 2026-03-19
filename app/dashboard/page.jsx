@@ -1,5 +1,6 @@
-import { auth, clerkClient } from '@/auth';
+import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
+import { Suspense } from 'react';
 import dbConnect from '@/lib/db';
 import Event from '@/models/Event';
 import Club from '@/models/Club';
@@ -8,6 +9,7 @@ import { getRoleFromRUData } from '@/lib/ru-data-mapper';
 import ruDataRaw from '../../all RU data 2 (1).json' with { type: 'json' };
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CalendarDays, Users, Flag, TrendingUp } from 'lucide-react';
+import { DashboardSkeleton } from '@/components/skeletons/dashboard-skeleton';
 
 async function getDashboardStats() {
     await dbConnect();
@@ -86,18 +88,17 @@ function getWelcomeMessage(userType) {
     }
 }
 
-export default async function DashboardPage() {
+async function DashboardContent() {
     const session = await auth();
 
-    if (!session) {
+    if (!session?.userId) {
         redirect('/login');
     }
 
-    // Get user email and fetch userType
+    // Get user email from session
     let userEmail = '';
     try {
-        const user = await (await clerkClient()).users.getUser(session.userId || '');
-        userEmail = user.emailAddresses[0]?.emailAddress || '';
+        userEmail = session.sessionClaims?.email || '';
     } catch (error) {
         console.error('Error fetching user email:', error);
     }
@@ -158,7 +159,7 @@ export default async function DashboardPage() {
                         {welcomeMessage}
                     </h1>
                     <p className="text-zinc-500 dark:text-zinc-400 mt-2 font-medium">
-                        Hello, <span className="text-primary font-bold">{session.user.name}</span>. Here's what's happening.
+                        Hello, <span className="text-primary font-bold">{session.sessionClaims?.name || 'User'}</span>. Here's what's happening.
                     </p>
                 </div>
                 <div className="bg-white dark:bg-zinc-900 p-1 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex items-center">
@@ -287,5 +288,13 @@ export default async function DashboardPage() {
                 </Card>
             </div>
         </div>
+    );
+}
+
+export default function DashboardPage() {
+    return (
+        <Suspense fallback={<DashboardSkeleton />}>
+            <DashboardContent />
+        </Suspense>
     );
 }

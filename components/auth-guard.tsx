@@ -1,4 +1,4 @@
-import { auth, clerkClient } from '@clerk/nextjs/server';
+import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
@@ -10,18 +10,18 @@ import { getRoleFromRUData } from '@/lib/ru-data-mapper';
  * Place it in your protected layouts/pages
  */
 export async function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { userId } = await auth();
+  const session = await auth();
 
-  if (!userId) {
+  if (!session?.userId) {
     redirect('/sign-in');
   }
 
   try {
-    const user = await (await clerkClient()).users.getUser(userId);
-    const email = user.emailAddresses[0]?.emailAddress;
+    // Get email from session claims (Clerk provides this)
+    const email = session.sessionClaims?.email;
 
     console.log('[AuthGuard] User email:', email);
-    console.log('[AuthGuard] Email from Clerk:', user.emailAddresses);
+    console.log('[AuthGuard] Session claims:', session.sessionClaims);
 
     if (!email) {
       console.log('[AuthGuard] No email found');
@@ -38,7 +38,7 @@ export async function AuthGuard({ children }: { children: React.ReactNode }) {
     }
 
     const isCollegeMail = isCollegeEmail(normalizedEmail);
-    const isVerified = user.emailAddresses[0]?.verification?.status === 'verified';
+    const isVerified = session.sessionClaims?.email_verified || false;
 
     console.log('[AuthGuard] Is college mail:', isCollegeMail);
     console.log('[AuthGuard] Is verified:', isVerified);
@@ -58,7 +58,7 @@ export async function AuthGuard({ children }: { children: React.ReactNode }) {
         console.log(`[AuthGuard] Creating user ${normalizedEmail} with role: ${userRole}`);
         
         await User.create({
-          name: user.firstName || normalizedEmail.split('@')[0],
+          name: session.sessionClaims?.name || normalizedEmail.split('@')[0],
           email: normalizedEmail,
           password: Math.random().toString(36).slice(-8),
           role: userRole,
