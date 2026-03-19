@@ -30,7 +30,7 @@ export default function RootLayout({ children }) {
         <ClerkProvider>
           <header className="border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-50 bg-white dark:bg-zinc-950 hidden lg:block">
             <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-              <h1 className="text-xl font-bold">LX Management OS</h1>
+              <h1 className="text-xl font-bold">LXOS</h1>
               <Suspense fallback={<div className="w-24 h-10" />}>
                 <HeaderActions />
               </Suspense>
