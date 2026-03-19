@@ -1,9 +1,11 @@
-import { auth } from '@/auth';
+import { auth, clerkClient } from '@/auth';
 import { redirect } from 'next/navigation';
 import dbConnect from '@/lib/db';
 import Event from '@/models/Event';
 import Club from '@/models/Club';
 import Clan from '@/models/Clan';
+import { getRoleFromRUData } from '@/lib/ru-data-mapper';
+import ruDataRaw from '../../all RU data 2 (1).json' with { type: 'json' };
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CalendarDays, Users, Flag, TrendingUp } from 'lucide-react';
 
@@ -48,12 +50,60 @@ async function getRecentEvents() {
     }));
 }
 
+// Get user type from RU data
+async function getUserType(email) {
+    try {
+        const ruData = Array.isArray(ruDataRaw) ? ruDataRaw : ruDataRaw?.data || [];
+        
+        const normalizedEmail = email.toLowerCase().trim();
+        const user = ruData.find(record => 
+            record?.email?.toLowerCase().trim() === normalizedEmail
+        );
+        
+        return user?.userType || null;
+    } catch (error) {
+        console.error('Error fetching user type:', error);
+        return null;
+    }
+}
+
+function getWelcomeMessage(userType) {
+    switch(userType) {
+        case 'STUDENT':
+            return 'Welcome Learner';
+        case 'CLUB':
+            return 'Welcome Club Head';
+        case 'CLAN':
+            return 'Welcome Clan Head';
+        case 'ADMIN':
+            return 'Welcome Administrator';
+        case 'FINANCE':
+            return 'Welcome Finance Manager';
+        case 'LX':
+            return 'Welcome LX Team';
+        default:
+            return 'Welcome back';
+    }
+}
+
 export default async function DashboardPage() {
     const session = await auth();
 
     if (!session) {
         redirect('/login');
     }
+
+    // Get user email and fetch userType
+    let userEmail = '';
+    try {
+        const user = await (await clerkClient()).users.getUser(session.userId || '');
+        userEmail = user.emailAddresses[0]?.emailAddress || '';
+    } catch (error) {
+        console.error('Error fetching user email:', error);
+    }
+
+    const userType = userEmail ? await getUserType(userEmail) : null;
+    const welcomeMessage = getWelcomeMessage(userType);
 
     // Deep serialization helper for Mongo objects
     const serialize = (obj) => {
@@ -105,10 +155,10 @@ export default async function DashboardPage() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-4xl font-black tracking-tight text-zinc-900 dark:text-zinc-100">
-                        Dashboard
+                        {welcomeMessage}
                     </h1>
                     <p className="text-zinc-500 dark:text-zinc-400 mt-2 font-medium">
-                        Welcome back, <span className="text-primary font-bold">{session.user.name}</span>. Here's what's happening.
+                        Hello, <span className="text-primary font-bold">{session.user.name}</span>. Here's what's happening.
                     </p>
                 </div>
                 <div className="bg-white dark:bg-zinc-900 p-1 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex items-center">
@@ -123,7 +173,7 @@ export default async function DashboardPage() {
                 {statCards.map((stat) => {
                     const Icon = stat.icon;
                     return (
-                        <Card key={stat.title} className="overflow-hidden border-none shadow-xl shadow-zinc-200/50 dark:shadow-none bg-white dark:bg-zinc-900 group hover:translate-y-[-4px] transition-all duration-300">
+                        <Card key={stat.title} className="overflow-hidden border-none shadow-xl shadow-zinc-200/50 dark:shadow-none bg-white dark:bg-zinc-900 group hover:-translate-y-1 transition-all duration-300">
                             <CardContent className="p-6">
                                 <div className="flex items-center justify-between mb-4">
                                     <div className={`p-3 rounded-2xl ${stat.bg} ${stat.color} transition-colors duration-300`}>
@@ -171,7 +221,7 @@ export default async function DashboardPage() {
                                         className="flex items-center justify-between p-6 hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40 transition-all duration-200 group"
                                     >
                                         <div className="flex items-center gap-4 min-w-0">
-                                            <div className={`h-12 w-12 rounded-2xl flex items-center justify-center flex-shrink-0 font-bold text-white shadow-lg
+                                            <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 font-bold text-white shadow-lg
                                                 ${event.type === 'CLUB' ? 'bg-blue-600 shadow-blue-200 dark:shadow-none' : ''}
                                                 ${event.type === 'CLAN' ? 'bg-primary shadow-primary/20 dark:shadow-none' : ''}
                                                 ${event.type === 'LX' ? 'bg-green-600 shadow-green-200 dark:shadow-none' : ''}

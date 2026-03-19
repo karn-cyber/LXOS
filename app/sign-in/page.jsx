@@ -3,7 +3,6 @@
 import { Suspense } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect } from 'react';
 import { SignInButton, SignUpButton } from '@clerk/nextjs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,18 +13,43 @@ function SignInPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  useEffect(() => {
-    if (isLoaded && isSignedIn) {
-      // Redirect to dashboard after successful auth
-      const redirectUrl = searchParams.get('redirect_url') || '/dashboard';
-      router.push(redirectUrl);
-    }
-  }, [isLoaded, isSignedIn, router, searchParams]);
-
   if (!isLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+      </div>
+    );
+  }
+
+  // If already signed in, show button to go to dashboard
+  if (isSignedIn) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="space-y-1 text-center">
+            <div className="flex justify-center mb-4">
+              <div className="h-12 w-12 bg-green-600 flex items-center justify-center rounded-lg">
+                <Building2 className="h-6 w-6 text-white" />
+              </div>
+            </div>
+            <CardTitle className="text-2xl font-bold">Welcome!</CardTitle>
+            <CardDescription>
+              You are already signed in
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-zinc-600 dark:text-zinc-400 text-center">
+              You have been successfully authenticated. Click below to access the LX Management Platform.
+            </p>
+            <Button 
+              onClick={() => router.push('/dashboard')}
+              className="w-full" 
+              size="lg"
+            >
+              Go to Dashboard
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -48,7 +72,7 @@ function SignInPageContent() {
           {/* Security Info */}
           <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
             <div className="flex gap-3">
-              <Lock className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+              <Lock className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
               <div className="text-sm text-blue-900 dark:text-blue-100">
                 <p className="font-medium mb-1">College Email Required</p>
                 <p className="text-xs">Only @rishihood.edu.in or @nst.rishihood.edu.in emails are allowed. Verification required.</p>
