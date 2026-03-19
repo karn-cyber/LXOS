@@ -1,6 +1,7 @@
 'use client';
 
-import { SignInButton } from '@clerk/nextjs';
+import { SignInButton, Show } from '@clerk/nextjs';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Building2, Lock, Mail, ArrowRight, Zap, Users, Trophy } from 'lucide-react';
@@ -74,16 +75,26 @@ export default function LandingPageContent() {
             </div>
           </div>
 
-          {/* Sign In Button */}
-          <SignInButton mode="modal" signUpForceRedirectUrl="/dashboard" forceRedirectUrl="/dashboard">
-            <Button 
-              className="w-full h-11 bg-gradient-to-r from-red-700 to-red-900 hover:from-red-800 hover:to-red-950 text-white font-bold rounded-lg flex items-center justify-center gap-2 transition-all duration-200"
-            >
-              <Mail className="h-5 w-5" />
-              Sign In Using College Mail ID
-              <ArrowRight className="h-4 w-4 ml-auto" />
+          {/* Primary Action */}
+          <Show when="signed-out">
+            <SignInButton mode="modal" signUpForceRedirectUrl="/dashboard" forceRedirectUrl="/dashboard">
+              <Button
+                className="w-full h-11 bg-gradient-to-r from-red-700 to-red-900 hover:from-red-800 hover:to-red-950 text-white font-bold rounded-lg flex items-center justify-center gap-2 transition-all duration-200"
+              >
+                <Mail className="h-5 w-5" />
+                Sign In Using College Mail ID
+                <ArrowRight className="h-4 w-4 ml-auto" />
+              </Button>
+            </SignInButton>
+          </Show>
+          <Show when="signed-in">
+            <Button asChild className="w-full h-11 bg-gradient-to-r from-red-700 to-red-900 hover:from-red-800 hover:to-red-950 text-white font-bold rounded-lg flex items-center justify-center gap-2 transition-all duration-200">
+              <Link href="/dashboard">
+                Go to Dashboard
+                <ArrowRight className="h-4 w-4 ml-auto" />
+              </Link>
             </Button>
-          </SignInButton>
+          </Show>
 
           {/* Footer Text */}
           <p className="text-center text-xs text-zinc-500 dark:text-zinc-400">

@@ -11,6 +11,7 @@ export const ADMIN_EXCEPTIONS = [
 
 // Import RU data for email verification
 import ruDataRaw from '../all RU data 2 (1).json' with { type: 'json' };
+import { lookupRUUser } from './ru-data-mapper';
 
 // Ensure ruData is an array (handle both direct array and nested data.array structure)
 const ruData = Array.isArray(ruDataRaw) 
@@ -19,17 +20,28 @@ const ruData = Array.isArray(ruDataRaw)
     ? ruDataRaw.data 
     : [];
 
+function normalizeEmail(email: string): string {
+  return String(email || '').toLowerCase().trim().replace(/\s+/g, '');
+}
+
+// Build a fast lookup set from RU data emails (email + contactEmail)
+const ruEmailSet = new Set(
+  ruData
+    .flatMap((record: any) => [record?.email, record?.contactEmail])
+    .filter(Boolean)
+    .map((value: string) => normalizeEmail(value))
+);
+
 // Function to check if email exists in RU data
 function emailExistsInRUData(email: string): boolean {
-  if (!ruData.length) {
+  if (!ruEmailSet.size) {
     console.log('[clerk-config] RU data not loaded');
-    return false;
+    // fallback to mapper lookup if set is unexpectedly empty
+    return Boolean(lookupRUUser(email));
   }
 
-  const normalizedEmail = email.toLowerCase().trim();
-  const found = ruData.some(record => 
-    record?.email?.toLowerCase().trim() === normalizedEmail
-  );
+  const normalizedEmail = normalizeEmail(email);
+  const found = ruEmailSet.has(normalizedEmail) || Boolean(lookupRUUser(normalizedEmail));
   
   console.log('[clerk-config] Email in RU data?', found, 'Email:', normalizedEmail);
   return found;
@@ -42,7 +54,7 @@ export function isEmailAllowed(email: string): boolean {
     return false;
   }
 
-  const normalizedEmail = email.toLowerCase().trim();
+  const normalizedEmail = normalizeEmail(email);
   
   // Check if it's an admin exception
   if (ADMIN_EXCEPTIONS.includes(normalizedEmail)) {

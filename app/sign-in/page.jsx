@@ -3,7 +3,7 @@
 import { Suspense } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { SignInButton, SignUpButton } from '@clerk/nextjs';
+import { SignInButton } from '@clerk/nextjs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Building2, Lock, Mail } from 'lucide-react';
@@ -92,22 +92,13 @@ function SignInPageContent() {
                 Sign In with Email
               </Button>
             </SignInButton>
-            <SignUpButton 
-              mode="modal"
-              forceRedirectUrl="/dashboard"
-              fallbackRedirectUrl="/dashboard"
-            >
-              <Button variant="outline" className="w-full" size="lg">
-                Create Account
-              </Button>
-            </SignUpButton>
           </div>
 
           {/* Info Box */}
           <div className="space-y-3 pt-4 border-t border-zinc-200 dark:border-zinc-800">
             <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">How it works:</p>
             <ol className="text-xs text-zinc-600 dark:text-zinc-400 space-y-2 list-decimal list-inside">
-              <li>Sign in or create an account with your college email</li>
+              <li>Sign in with your college email</li>
               <li>Verify your email address</li>
               <li>Access the LX Management platform</li>
             </ol>

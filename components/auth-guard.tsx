@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { auth, clerkClient } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
@@ -17,11 +17,27 @@ export async function AuthGuard({ children }: { children: React.ReactNode }) {
   }
 
   try {
-    // Get email from session claims (Clerk provides this)
-    const email = session.sessionClaims?.email;
+    let email = (session.sessionClaims as any)?.email || (session.sessionClaims as any)?.email_address;
+    let displayName = (session.sessionClaims as any)?.name || '';
+    let isVerified = Boolean((session.sessionClaims as any)?.email_verified);
+
+    // Fallback to Clerk user lookup when session claims do not include email
+    if (!email && session.userId) {
+      const user = await (await clerkClient()).users.getUser(session.userId);
+      const primaryEmail =
+        user.emailAddresses.find((e) => e.id === user.primaryEmailAddressId) ||
+        user.emailAddresses[0];
+
+      email = primaryEmail?.emailAddress;
+      isVerified = primaryEmail?.verification?.status === 'verified';
+      displayName =
+        displayName ||
+        [user.firstName, user.lastName].filter(Boolean).join(' ') ||
+        user.username ||
+        '';
+    }
 
     console.log('[AuthGuard] User email:', email);
-    console.log('[AuthGuard] Session claims:', session.sessionClaims);
 
     if (!email) {
       console.log('[AuthGuard] No email found');
@@ -38,7 +54,6 @@ export async function AuthGuard({ children }: { children: React.ReactNode }) {
     }
 
     const isCollegeMail = isCollegeEmail(normalizedEmail);
-    const isVerified = session.sessionClaims?.email_verified || false;
 
     console.log('[AuthGuard] Is college mail:', isCollegeMail);
     console.log('[AuthGuard] Is verified:', isVerified);
@@ -50,18 +65,17 @@ export async function AuthGuard({ children }: { children: React.ReactNode }) {
 
     await dbConnect();
     const dbUser = await User.findOne({ email: normalizedEmail }).lean();
+    const mappedRole = getRoleFromRUData(normalizedEmail) || 'GUEST';
 
-    if (!dbUser && !ADMIN_EXCEPTIONS.includes(email)) {
+    if (!dbUser && !ADMIN_EXCEPTIONS.includes(normalizedEmail)) {
       try {
-        // Try to get role from RU data, default to GUEST if not found
-        let userRole = getRoleFromRUData(normalizedEmail) || 'GUEST';
-        console.log(`[AuthGuard] Creating user ${normalizedEmail} with role: ${userRole}`);
+        console.log(`[AuthGuard] Creating user ${normalizedEmail} with role: ${mappedRole}`);
         
         await User.create({
-          name: session.sessionClaims?.name || normalizedEmail.split('@')[0],
+          name: displayName || normalizedEmail.split('@')[0],
           email: normalizedEmail,
           password: Math.random().toString(36).slice(-8),
-          role: userRole,
+          role: mappedRole,
           isActive: true,
         });
       } catch (err: any) {
@@ -70,10 +84,16 @@ export async function AuthGuard({ children }: { children: React.ReactNode }) {
           throw err;
         }
       }
+    } else if (dbUser && dbUser.role !== mappedRole) {
+      await User.updateOne({ email: normalizedEmail }, { $set: { role: mappedRole } });
     }
 
     return children;
-  } catch (error) {
+  } catch (error: any) {
+    // Let Next.js redirects pass through without converting to blocked page
+    if (error?.digest?.startsWith?.('NEXT_REDIRECT')) {
+      throw error;
+    }
     console.error('Auth guard error:', error);
     redirect('/blocked');
   }

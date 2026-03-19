@@ -37,13 +37,11 @@ export default async function BlockedPage() {
             Your email address is not authorized to access this application.
           </p>
           <p className="text-sm text-zinc-500 dark:text-zinc-500">
-            Only users with the following email domains are allowed:
+            Access is allowed only for emails that exist in institutional RU data.
           </p>
-          <ul className="text-sm space-y-1 text-zinc-600 dark:text-zinc-400">
-            <li>• @rishihood.edu.in</li>
-            <li>• @nst.rishihood.edu.in</li>
-            <li>• @lxos.edu (admins)</li>
-          </ul>
+          <p className="text-sm text-zinc-500 dark:text-zinc-500">
+            If your email is present in RU records and you still see this page, contact support.
+          </p>
           
           {userId && (
             <div className="bg-zinc-100 dark:bg-zinc-800 rounded-lg p-3 text-xs space-y-1 font-mono">
@@ -56,7 +54,7 @@ export default async function BlockedPage() {
             If you believe this is an error, please contact the administrator.
           </p>
           <div className="flex gap-3 pt-4">
-            <Link href="/login" className="flex-1">
+            <Link href="/sign-in" className="flex-1">
               <Button variant="outline" className="w-full">
                 Back to Login
               </Button>
