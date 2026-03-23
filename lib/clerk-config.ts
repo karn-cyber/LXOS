@@ -10,7 +10,7 @@ export const ADMIN_EXCEPTIONS = [
 ];
 
 // Import RU data for email verification
-import ruDataRaw from '../all RU data 2 (1).json' with { type: 'json' };
+import ruDataRaw from '../data/ru-data.json' with { type: 'json' };
 import { lookupRUUser } from './ru-data-mapper';
 
 // Ensure ruData is an array (handle both direct array and nested data.array structure)

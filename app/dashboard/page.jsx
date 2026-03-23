@@ -6,7 +6,7 @@ import Event from '@/models/Event';
 import Club from '@/models/Club';
 import Clan from '@/models/Clan';
 import { getRoleFromRUData } from '@/lib/ru-data-mapper';
-import ruDataRaw from '../../all RU data 2 (1).json' with { type: 'json' };
+import ruDataRaw from '../../data/ru-data.json' with { type: 'json' };
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CalendarDays, Users, Flag, TrendingUp } from 'lucide-react';
 import { DashboardSkeleton } from '@/components/skeletons/dashboard-skeleton';
