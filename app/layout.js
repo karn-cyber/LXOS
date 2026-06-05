@@ -1,4 +1,4 @@
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Suspense } from "react";
 import HeaderActions from "@/components/header-actions";
@@ -16,6 +16,13 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const instrumentSerif = Instrument_Serif({
+  variable: "--font-instrument-serif",
+  subsets: ["latin"],
+  weight: "400",
+  style: ["normal", "italic"],
+});
+
 export const metadata = {
   title: "LX Management OS",
   description: "Learner Experience Operating System for University Management",
@@ -25,17 +32,9 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable} antialiased`}
       >
         <ClerkProvider>
-          <header className="border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-50 bg-white dark:bg-zinc-950 hidden lg:block">
-            <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-              <h1 className="text-xl font-bold">LXOS</h1>
-              <Suspense fallback={<div className="w-24 h-10" />}>
-                <HeaderActions />
-              </Suspense>
-            </div>
-          </header>
           {children}
           <Toaster />
           <Sonner />

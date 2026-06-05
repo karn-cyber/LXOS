@@ -1,182 +1,135 @@
 import { redirect } from 'next/navigation';
+import { Suspense } from 'react';
 import dbConnect from '@/lib/db';
 import Achievement from '@/models/Achievement';
-import Event from '@/models/Event';
-import Club from '@/models/Club';
-import Clan from '@/models/Clan';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Plus, Trophy, Calendar, Users } from 'lucide-react';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Plus, Trophy, Star } from 'lucide-react';
 import { getDashboardSession } from '@/lib/dashboard-session';
 
 async function getAchievements(session) {
     await dbConnect();
-
     const filter = session?.user?.role === 'ADMIN' ? {} : { status: 'APPROVED' };
-
-    const achievements = await Achievement.find(filter)
+    const items = await Achievement.find(filter)
         .sort({ achievedDate: -1 })
-        .populate('eventId', 'title type')
-        .populate('clubId', 'name category')
-        .populate('clanId', 'name color')
+        .populate('clubId', 'name')
+        .populate('clanId', 'name')
         .lean();
-
-    return achievements.map(achievement => ({
-        ...achievement,
-        _id: achievement._id.toString(),
-        eventId: achievement.eventId ? { ...achievement.eventId, _id: achievement.eventId._id.toString() } : null,
-        clubId: achievement.clubId ? { ...achievement.clubId, _id: achievement.clubId._id.toString() } : null,
-        clanId: achievement.clanId ? { ...achievement.clanId, _id: achievement.clanId._id.toString() } : null,
-    }));
+    return JSON.parse(JSON.stringify(items));
 }
 
-export default async function AchievementsPage() {
+function AchievementsSkeleton() {
+    return (
+        <div className="space-y-6 animate-pulse">
+            <div className="h-8 w-36 bg-zinc-100 dark:bg-zinc-800 rounded" />
+            <div className="grid gap-3 md:grid-cols-2">
+                {[1,2,3,4].map(i => <div key={i} className="h-32 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-100 dark:border-zinc-800" />)}
+            </div>
+        </div>
+    );
+}
+
+const CATEGORY_COLORS = {
+    Academic:  'text-blue-600 bg-blue-50 dark:bg-blue-950/30',
+    Sports:    'text-green-600 bg-green-50 dark:bg-green-950/30',
+    Cultural:  'text-purple-600 bg-purple-50 dark:bg-purple-950/30',
+    Technical: 'text-cyan-600 bg-cyan-50 dark:bg-cyan-950/30',
+    Social:    'text-orange-600 bg-orange-50 dark:bg-orange-950/30',
+    Other:     'text-zinc-500 bg-zinc-50 dark:bg-zinc-800',
+};
+
+async function AchievementsContent() {
     const session = await getDashboardSession();
+    if (!session) redirect('/login');
 
-    if (!session) {
-        redirect('/login');
-    }
-
-    const achievements = await getAchievements(session);
-    const canCreate = ['ADMIN', 'LX_TEAM'].includes(session.user.role);
+    const items = await getAchievements(session);
+    // GUEST (General Access) and others with CREATE_ACHIEVEMENT can submit
+    const canCreate = ['ADMIN', 'LX_TEAM', 'CLUB_HEAD', 'CLAN_HEAD', 'GUEST'].includes(session.user.role);
+    const canEdit = ['ADMIN', 'LX_TEAM'].includes(session.user.role);
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-8">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-start justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Achievements</h1>
-                    <p className="text-zinc-500 dark:text-zinc-400 mt-2">
-                        Repository of all club and clan achievements
+                    <h1 className="font-display text-3xl italic text-zinc-900 dark:text-zinc-100">Achievements</h1>
+                    <p className="text-sm text-zinc-400 mt-1">
+                        {items.filter(a => a.status === 'APPROVED').length} approved · {items.filter(a => a.status === 'PENDING').length} pending
                     </p>
                 </div>
                 {canCreate && (
                     <Link href="/dashboard/achievements/create">
-                        <Button>
-                            <Plus className="h-4 w-4 mr-2" />
-                            Add Achievement
+                        <Button size="sm" className="bg-primary text-white hover:bg-primary/90 rounded-xl font-medium flex items-center gap-1.5 h-9">
+                            <Plus className="h-3.5 w-3.5" />
+                            Submit
                         </Button>
                     </Link>
                 )}
             </div>
 
-            {/* Achievements Grid */}
-            {achievements.length === 0 ? (
-                <Card>
-                    <CardContent className="flex flex-col items-center justify-center py-16">
-                        <Trophy className="h-12 w-12 text-zinc-400 mb-4" />
-                        <p className="text-zinc-500 dark:text-zinc-400 text-center mb-4">
-                            No achievements recorded yet. Add your first achievement to get started.
-                        </p>
-                        {canCreate && (
-                            <Link href="/dashboard/achievements/create">
-                                <Button>
-                                    <Plus className="h-4 w-4 mr-2" />
-                                    Add Achievement
-                                </Button>
-                            </Link>
-                        )}
-                    </CardContent>
-                </Card>
+            {items.length === 0 ? (
+                <div className="text-center py-16 text-zinc-400 text-sm border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl">
+                    No achievements recorded yet.
+                    {canCreate && (
+                        <Link href="/dashboard/achievements/create" className="block mt-2 text-primary text-xs hover:underline">
+                            Submit the first achievement →
+                        </Link>
+                    )}
+                </div>
             ) : (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {achievements.map((achievement) => (
-                        <Card key={achievement._id} className="h-full hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-colors">
-                            <CardHeader>
-                                <div className="flex items-start gap-3">
-                                    <div className="h-10 w-10 rounded-lg bg-yellow-100 dark:bg-yellow-950 flex items-center justify-center shrink-0">
-                                        <Trophy className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
-                                    </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                    {items.map(a => {
+                        const catStyle = CATEGORY_COLORS[a.category] || CATEGORY_COLORS.Other;
+                        return (
+                            <div key={a._id} className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl p-5">
+                                <div className="flex items-start justify-between gap-3">
                                     <div className="flex-1 min-w-0">
-                                        <CardTitle className="text-lg leading-tight">{achievement.title}</CardTitle>
-                                        <div className="flex items-center gap-2 mt-2">
-                                            <Badge variant="outline">{achievement.category}</Badge>
-                                            {achievement.pointsAwarded > 0 && (
-                                                <Badge className="bg-yellow-100 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-300">
-                                                    +{achievement.pointsAwarded} pts
-                                                </Badge>
+                                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                                            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${catStyle}`}>
+                                                {a.category}
+                                            </span>
+                                            {a.status === 'PENDING' && (
+                                                <span className="text-[10px] font-medium text-yellow-600 bg-yellow-50 dark:bg-yellow-950/30 px-2 py-0.5 rounded-full">
+                                                    pending
+                                                </span>
+                                            )}
+                                            {a.points > 0 && (
+                                                <span className="flex items-center gap-1 text-[10px] font-medium text-zinc-500">
+                                                    <Star className="h-3 w-3 text-yellow-400 fill-yellow-400" />
+                                                    {a.points} pts
+                                                </span>
                                             )}
                                         </div>
+                                        <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 leading-snug">{a.title}</h3>
+                                        <p className="text-xs text-zinc-400 mt-1 line-clamp-2">{a.description}</p>
                                     </div>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="space-y-3">
-                                <p className="text-sm text-zinc-600 dark:text-zinc-400 line-clamp-3">
-                                    {achievement.description}
-                                </p>
-
-                                {/* Date */}
-                                <div className="flex items-center gap-2 text-sm text-zinc-500">
-                                    <Calendar className="h-4 w-4" />
-                                    <span>{new Date(achievement.date).toLocaleDateString()}</span>
+                                    <Trophy className="h-5 w-5 text-yellow-400 shrink-0 mt-0.5" />
                                 </div>
 
-                                {/* Organization */}
-                                {achievement.clubId && (
-                                    <div className="flex items-center gap-2 text-sm">
-                                        <Users className="h-4 w-4 text-zinc-500" />
-                                        <span className="font-medium">{achievement.clubId.name}</span>
+                                <div className="mt-3 pt-3 border-t border-zinc-50 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-2">
+                                    <div className="text-[11px] text-zinc-400">
+                                        {a.clubId?.name || a.clanId?.name || '—'}
+                                        {a.achievedDate && ` · ${new Date(a.achievedDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`}
                                     </div>
-                                )}
-                                {achievement.clanId && (
-                                    <div className="flex items-center gap-2 text-sm">
-                                        <div
-                                            className="h-3 w-3 rounded-lg"
-                                            style={{ backgroundColor: achievement.clanId.color }}
-                                        />
-                                        <span className="font-medium">{achievement.clanId.name}</span>
-                                    </div>
-                                )}
-
-                                {/* Event Link */}
-                                {achievement.eventId && (
-                                    <div className="pt-2 border-t border-zinc-200 dark:border-zinc-800">
-                                        <p className="text-xs text-zinc-500">Related Event</p>
-                                        <Link
-                                            href={`/dashboard/events/${achievement.eventId._id}`}
-                                            className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
-                                        >
-                                            {achievement.eventId.title}
+                                    {canEdit && (
+                                        <Link href={`/dashboard/achievements/${a._id}/edit`} className="text-xs text-zinc-400 hover:text-primary transition-colors">
+                                            Edit →
                                         </Link>
-                                    </div>
-                                )}
-
-                                {/* Participants */}
-                                {achievement.participants && achievement.participants.length > 0 && (
-                                    <div className="pt-2 border-t border-zinc-200 dark:border-zinc-800">
-                                        <p className="text-xs text-zinc-500 mb-1">Participants</p>
-                                        <div className="flex flex-wrap gap-1">
-                                            {achievement.participants.slice(0, 3).map((participant, idx) => (
-                                                <Badge key={idx} variant="secondary" className="text-xs">
-                                                    {participant}
-                                                </Badge>
-                                            ))}
-                                            {achievement.participants.length > 3 && (
-                                                <Badge variant="secondary" className="text-xs">
-                                                    +{achievement.participants.length - 3} more
-                                                </Badge>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Action buttons for authorized users */}
-                                {canCreate && (
-                                    <div className="pt-3 border-t border-zinc-200 dark:border-zinc-800">
-                                        <Link href={`/dashboard/achievements/${achievement._id}/edit`} className="block">
-                                            <Button variant="outline" size="sm" className="w-full">
-                                                View/Edit Details
-                                            </Button>
-                                        </Link>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                    ))}
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
             )}
         </div>
+    );
+}
+
+export default function AchievementsPage() {
+    return (
+        <Suspense fallback={<AchievementsSkeleton />}>
+            <AchievementsContent />
+        </Suspense>
     );
 }

@@ -1,315 +1,291 @@
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
-import LoadingOverlay from '@/components/ui/loading-overlay';
 import dbConnect from '@/lib/db';
 import Event from '@/models/Event';
 import Club from '@/models/Club';
 import Clan from '@/models/Clan';
-import { getRoleFromRUData } from '@/lib/ru-data-mapper';
+import Approval from '@/models/Approval';
 import ruDataRaw from '../../data/ru-data.json' with { type: 'json' };
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CalendarDays, Users, Flag, TrendingUp } from 'lucide-react';
-import { DashboardSkeleton } from '@/components/skeletons/dashboard-skeleton';
+import {
+    CalendarDays, Users, Flag, TrendingUp, ArrowRight,
+    CheckSquare, Clock, Trophy, Zap, BarChart2, FolderOpen,
+} from 'lucide-react';
+import Link from 'next/link';
 
 async function getDashboardStats() {
     try {
         await dbConnect();
-
-        const [totalEvents, totalClubs, totalClans, upcomingEvents] = await Promise.all([
+        const [totalEvents, totalClubs, totalClans, upcomingEvents, pendingApprovals] = await Promise.all([
             Event.countDocuments(),
             Club.countDocuments({ isActive: true }),
             Clan.countDocuments(),
-            Event.countDocuments({
-                startDate: { $gte: new Date() },
-                status: 'APPROVED'
-            }),
+            Event.countDocuments({ startDate: { $gte: new Date() }, status: 'APPROVED' }),
+            Approval.countDocuments({ status: 'PENDING' }),
         ]);
-
-        return {
-            totalEvents,
-            totalClubs,
-            totalClans,
-            upcomingEvents,
-        };
-    } catch (error) {
-        console.error('Failed to load dashboard stats:', error.message);
-        return {
-            totalEvents: 0,
-            totalClubs: 0,
-            totalClans: 0,
-            upcomingEvents: 0,
-        };
+        return { totalEvents, totalClubs, totalClans, upcomingEvents, pendingApprovals };
+    } catch {
+        return { totalEvents: 0, totalClubs: 0, totalClans: 0, upcomingEvents: 0, pendingApprovals: 0 };
     }
 }
 
 async function getRecentEvents() {
     try {
         await dbConnect();
-
         const events = await Event.find()
             .sort({ createdAt: -1 })
-            .limit(5)
+            .limit(6)
             .populate('clubId', 'name')
             .populate('clanId', 'name')
-            .populate('createdBy', 'name')
             .lean();
-
-        return events.map(event => ({
-            ...event,
-            _id: event._id.toString(),
-            clubId: event.clubId ? { ...event.clubId, _id: event.clubId._id.toString() } : null,
-            clanId: event.clanId ? { ...event.clanId, _id: event.clanId._id.toString() } : null,
-            createdBy: event.createdBy ? { ...event.createdBy, _id: event.createdBy._id.toString() } : null,
-        }));
-    } catch (error) {
-        console.error('Failed to load recent events:', error.message);
+        return JSON.parse(JSON.stringify(events));
+    } catch {
         return [];
     }
 }
 
-// Get user type from RU data
-async function getUserType(email) {
+async function getNextEvent() {
     try {
-        const ruData = Array.isArray(ruDataRaw) ? ruDataRaw : ruDataRaw?.data || [];
-        
-        const normalizedEmail = email.toLowerCase().trim();
-        const user = ruData.find(record => 
-            record?.email?.toLowerCase().trim() === normalizedEmail
-        );
-        
-        return user?.userType || null;
-    } catch (error) {
-        console.error('Error fetching user type:', error);
+        await dbConnect();
+        const event = await Event.findOne({
+            startDate: { $gte: new Date() },
+            status: 'APPROVED',
+        })
+            .sort({ startDate: 1 })
+            .populate('clubId', 'name')
+            .lean();
+        return event ? JSON.parse(JSON.stringify(event)) : null;
+    } catch {
         return null;
     }
 }
 
-function getWelcomeMessage(userType) {
-    switch(userType) {
-        case 'STUDENT':
-            return 'Welcome Learner';
-        case 'CLUB':
-            return 'Welcome Club Head';
-        case 'CLAN':
-            return 'Welcome Clan Head';
-        case 'ADMIN':
-            return 'Welcome Administrator';
-        case 'FINANCE':
-            return 'Welcome Finance Manager';
-        case 'LX':
-            return 'Welcome LX Team';
-        default:
-            return 'Welcome back';
-    }
+async function getUserType(email) {
+    const ruData = Array.isArray(ruDataRaw) ? ruDataRaw : ruDataRaw?.data || [];
+    const user = ruData.find(r => r?.email?.toLowerCase().trim() === email?.toLowerCase().trim());
+    return user?.userType || null;
 }
+
+function getQuickActions(userType) {
+    const defaults = [
+        { label: 'Events', href: '/dashboard/events', icon: CalendarDays },
+        { label: 'Achievements', href: '/dashboard/achievements', icon: Trophy },
+        { label: 'Calendar', href: '/dashboard/calendar', icon: CalendarDays },
+    ];
+    const roleActions = {
+        ADMIN: [
+            { label: 'Approvals', href: '/dashboard/approvals', icon: CheckSquare },
+            { label: 'Budget', href: '/dashboard/budget', icon: BarChart2 },
+            { label: 'Analytics', href: '/dashboard/analytics', icon: TrendingUp },
+            { label: 'Create Event', href: '/dashboard/events/create', icon: Zap },
+        ],
+        LX: [
+            { label: 'Approvals', href: '/dashboard/approvals', icon: CheckSquare },
+            { label: 'Create Event', href: '/dashboard/events/create', icon: Zap },
+            { label: 'Analytics', href: '/dashboard/analytics', icon: TrendingUp },
+        ],
+        CLUB: [
+            { label: 'Request Event', href: '/dashboard/events/create', icon: Zap },
+            { label: 'My Club', href: '/dashboard/clubs', icon: Users },
+            { label: 'Add Achievement', href: '/dashboard/achievements/create', icon: Trophy },
+        ],
+        CLAN: [
+            { label: 'My Clan', href: '/dashboard/clans', icon: Flag },
+            { label: 'Create Event', href: '/dashboard/events/create', icon: Zap },
+            { label: 'Achievements', href: '/dashboard/achievements', icon: Trophy },
+        ],
+        FINANCE: [
+            { label: 'Approvals', href: '/dashboard/approvals', icon: CheckSquare },
+            { label: 'Budget', href: '/dashboard/budget', icon: BarChart2 },
+            { label: 'Repository', href: '/dashboard/files', icon: FolderOpen },
+        ],
+    };
+    return roleActions[userType] || defaults;
+}
+
+const STATUS_STYLES = {
+    APPROVED:  'text-green-600 bg-green-50 dark:bg-green-950/40',
+    PENDING:   'text-yellow-600 bg-yellow-50 dark:bg-yellow-950/40',
+    REJECTED:  'text-red-500 bg-red-50 dark:bg-red-950/40',
+    COMPLETED: 'text-zinc-500 bg-zinc-100 dark:bg-zinc-800',
+    CANCELLED: 'text-zinc-400 bg-zinc-50 dark:bg-zinc-900',
+};
+
+const TYPE_DOT = {
+    CLUB: 'bg-blue-400',
+    CLAN: 'bg-primary',
+    LX:   'bg-emerald-400',
+};
 
 async function DashboardContent() {
     const session = await auth();
+    if (!session?.userId) redirect('/login');
 
-    if (!session?.userId) {
-        redirect('/login');
-    }
-
-    // Get user email from session
-    let userEmail = '';
-    try {
-        userEmail = session.sessionClaims?.email || '';
-    } catch (error) {
-        console.error('Error fetching user email:', error);
-    }
-
+    const userEmail = session.sessionClaims?.email || '';
+    const userName = session.sessionClaims?.name || 'there';
+    const firstName = userName.split(' ')[0];
     const userType = userEmail ? await getUserType(userEmail) : null;
-    const welcomeMessage = getWelcomeMessage(userType);
+    const quickActions = getQuickActions(userType);
 
-    // Deep serialization helper for Mongo objects
-    const serialize = (obj) => {
-        if (!obj) return null;
-        return JSON.parse(JSON.stringify(obj));
-    };
+    const [stats, recentEvents, nextEvent] = await Promise.all([
+        getDashboardStats(),
+        getRecentEvents(),
+        getNextEvent(),
+    ]);
 
-    const stats = await getDashboardStats();
-    const recentEvents = serialize(await getRecentEvents());
-
-    const statCards = [
-        {
-            title: 'Total Events',
-            value: stats.totalEvents,
-            icon: CalendarDays,
-            description: 'All time events',
-            color: 'text-blue-600',
-            bg: 'bg-blue-50 dark:bg-blue-950/30'
-        },
-        {
-            title: 'Active Clubs',
-            value: stats.totalClubs,
-            icon: Users,
-            description: 'Currently active',
-            color: 'text-primary',
-            bg: 'bg-secondary'
-        },
-        {
-            title: 'Clans',
-            value: stats.totalClans,
-            icon: Flag,
-            description: 'Competing clans',
-            color: 'text-orange-600',
-            bg: 'bg-orange-50 dark:bg-orange-950/30'
-        },
-        {
-            title: 'Upcoming Events',
-            value: stats.upcomingEvents,
-            icon: TrendingUp,
-            description: 'Approved events',
-            color: 'text-green-600',
-            bg: 'bg-green-50 dark:bg-green-950/30'
-        },
+    const statItems = [
+        { label: 'Total events', value: stats.totalEvents, icon: CalendarDays, href: '/dashboard/events' },
+        { label: 'Active clubs', value: stats.totalClubs, icon: Users, href: '/dashboard/clubs' },
+        { label: 'Clans', value: stats.totalClans, icon: Flag, href: '/dashboard/clans' },
+        { label: 'Upcoming', value: stats.upcomingEvents, icon: Clock, href: '/dashboard/calendar' },
     ];
 
     return (
-        <div className="space-y-10 animate-in fade-in duration-500">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-10">
+            {/* Greeting */}
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl px-6 py-5 flex items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-4xl font-black tracking-tight text-zinc-900 dark:text-zinc-100">
-                        {welcomeMessage}
+                    <h1 className="font-display text-3xl italic text-zinc-900 dark:text-zinc-100">
+                        Good to see you, {firstName}.
                     </h1>
-                    <p className="text-zinc-500 dark:text-zinc-400 mt-2 font-medium">
-                        Hello, <span className="text-primary font-bold">{session.sessionClaims?.name || 'User'}</span>. Here is what is happening.
+                    <p className="text-sm text-zinc-400 mt-1">
+                        {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
                     </p>
                 </div>
-                <div className="bg-white dark:bg-zinc-900 p-1 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex items-center">
-                    <div className="px-4 py-2 bg-secondary text-primary rounded-xl text-xs font-bold uppercase tracking-wider">
-                        {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                    </div>
-                </div>
+                {stats.pendingApprovals > 0 && (
+                    <Link
+                        href="/dashboard/approvals"
+                        className="flex items-center gap-2 text-xs font-medium text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-950/40 border border-yellow-100 dark:border-yellow-900/30 px-3 py-2 rounded-xl hover:bg-yellow-100 transition-colors shrink-0"
+                    >
+                        <Clock className="h-3.5 w-3.5" />
+                        {stats.pendingApprovals} pending
+                    </Link>
+                )}
             </div>
 
-            {/* Stats Grid */}
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                {statCards.map((stat) => {
-                    const Icon = stat.icon;
-                    return (
-                        <Card key={stat.title} className="overflow-hidden border-none shadow-xl shadow-zinc-200/50 dark:shadow-none bg-white dark:bg-zinc-900 group hover:-translate-y-1 transition-all duration-300">
-                            <CardContent className="p-6">
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className={`p-3 rounded-2xl ${stat.bg} ${stat.color} transition-colors duration-300`}>
-                                        <Icon className="h-6 w-6" />
-                                    </div>
-                                    <div className="text-right">
-                                        <div className="text-3xl font-black text-zinc-900 dark:text-zinc-100 leading-none">{stat.value}</div>
-                                        <p className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mt-1">
-                                            {stat.title}
+            {/* Stats strip */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {statItems.map(({ label, value, icon: Icon, href }) => (
+                    <Link key={label} href={href}>
+                        <div className="group bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl p-4 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors cursor-pointer">
+                            <div className="flex items-start justify-between mb-3">
+                                <div className="p-2 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
+                                    <Icon className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
+                                </div>
+                            </div>
+                            <div className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{value}</div>
+                            <div className="text-xs text-zinc-400 mt-0.5">{label}</div>
+                        </div>
+                    </Link>
+                ))}
+            </div>
+
+            {/* Next upcoming event highlight */}
+            {nextEvent && (
+                <div>
+                    <h2 className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-3">Next up</h2>
+                    <Link href={`/dashboard/events/${nextEvent._id}`}>
+                        <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl p-5 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors">
+                            <div className="flex items-center justify-between gap-4">
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${TYPE_DOT[nextEvent.type] || 'bg-zinc-400'}`} />
+                                    <div className="min-w-0">
+                                        <p className="font-medium text-zinc-900 dark:text-zinc-100 truncate">{nextEvent.title}</p>
+                                        <p className="text-xs text-zinc-400 mt-0.5">
+                                            {nextEvent.clubId?.name || 'LX'}
+                                            {' · '}
+                                            {new Date(nextEvent.startDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                                         </p>
                                     </div>
                                 </div>
-                                <div className="flex items-center text-xs font-medium text-zinc-500 dark:text-zinc-400 border-t border-zinc-100 dark:border-zinc-800 pt-4">
-                                    {stat.description}
+                                <div className="flex items-center gap-2 shrink-0">
+                                    <span className="text-xs text-zinc-400">
+                                        {Math.ceil((new Date(nextEvent.startDate) - new Date()) / (1000 * 60 * 60 * 24))} days away
+                                    </span>
+                                    <ArrowRight className="h-3.5 w-3.5 text-zinc-300" />
                                 </div>
-                            </CardContent>
-                        </Card>
-                    );
-                })}
+                            </div>
+                        </div>
+                    </Link>
+                </div>
+            )}
+
+            {/* Quick actions */}
+            <div>
+                <h2 className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-3">Quick actions</h2>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                    {quickActions.map(({ label, href, icon: Icon }) => (
+                        <Link key={label} href={href}>
+                            <div className="flex items-center gap-2.5 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 px-3.5 py-3 rounded-xl hover:border-zinc-300 dark:hover:border-zinc-600 hover:text-primary transition-colors cursor-pointer group">
+                                <Icon className="h-4 w-4 text-zinc-400 group-hover:text-primary transition-colors shrink-0" />
+                                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300 group-hover:text-primary transition-colors truncate">{label}</span>
+                            </div>
+                        </Link>
+                    ))}
+                </div>
             </div>
 
-            {/* Main Grid */}
-            <div className="grid gap-8 lg:grid-cols-3">
-                {/* Recent Events */}
-                <Card className="lg:col-span-2 border-none shadow-xl shadow-zinc-200/50 dark:shadow-none bg-white dark:bg-zinc-910">
-                    <CardHeader className="flex flex-row items-center justify-between border-b border-zinc-50 dark:border-zinc-800 pb-6">
-                        <div>
-                            <CardTitle className="text-xl font-bold">Recent Events</CardTitle>
-                            <p className="text-xs text-zinc-400 font-medium mt-1">Latest activities from clubs and clans</p>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                        {recentEvents.length === 0 ? (
-                            <div className="text-center py-12 text-zinc-500 dark:text-zinc-400">
-                                <div className="bg-zinc-50 dark:bg-zinc-800/50 h-16 w-16 rounded-3xl flex items-center justify-center mx-auto mb-4">
-                                    <CalendarDays className="h-8 w-8 text-zinc-300" />
-                                </div>
-                                <p className="font-medium">No events yet</p>
-                            </div>
-                        ) : (
-                            <div className="divide-y divide-zinc-50 dark:divide-zinc-800">
-                                {recentEvents.map((event) => (
-                                    <div
-                                        key={event._id}
-                                        className="flex items-center justify-between p-6 hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40 transition-all duration-200 group"
-                                    >
-                                        <div className="flex items-center gap-4 min-w-0">
-                                            <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 font-bold text-white shadow-lg
-                                                ${event.type === 'CLUB' ? 'bg-blue-600 shadow-blue-200 dark:shadow-none' : ''}
-                                                ${event.type === 'CLAN' ? 'bg-primary shadow-primary/20 dark:shadow-none' : ''}
-                                                ${event.type === 'LX' ? 'bg-green-600 shadow-green-200 dark:shadow-none' : ''}
-                                            `}>
-                                                {event.type[0]}
-                                            </div>
-                                            <div className="min-w-0">
-                                                <h3 className="font-bold text-zinc-900 dark:text-zinc-100 truncate group-hover:text-primary transition-colors">{event.title}</h3>
-                                                <div className="flex items-center gap-2 mt-1">
-                                                    <span className="text-sm font-medium text-zinc-500 truncate">
-                                                        {event.clubId?.name || event.clanId?.name || 'LX Event'}
-                                                    </span>
-                                                    <span className="text-zinc-300">•</span>
-                                                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
-                                                        By {event.createdBy?.name}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="flex flex-col items-end gap-2 ml-4">
-                                            <div className={`
-                                                px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-full
-                                                ${event.status === 'APPROVED' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : ''}
-                                                ${event.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' : ''}
-                                                ${event.status === 'REJECTED' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : ''}
-                                            `}>
-                                                {event.status}
-                                            </div>
-                                            <span className="text-[10px] font-medium text-zinc-400">
-                                                {new Date(event.createdAt).toLocaleDateString()}
-                                            </span>
+            {/* Recent events */}
+            <div>
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="font-display text-xl italic text-zinc-900 dark:text-zinc-100">Recent Events</h2>
+                    <Link href="/dashboard/events" className="text-xs text-zinc-400 hover:text-primary transition-colors flex items-center gap-1">
+                        View all <ArrowRight className="h-3 w-3" />
+                    </Link>
+                </div>
+
+                {recentEvents.length === 0 ? (
+                    <div className="text-center py-12 text-zinc-400 text-sm border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl">
+                        No events yet.
+                    </div>
+                ) : (
+                    <div className="border border-zinc-100 dark:border-zinc-800 rounded-xl overflow-hidden bg-white dark:bg-zinc-900 divide-y divide-zinc-50 dark:divide-zinc-800">
+                        {recentEvents.map((event) => (
+                            <Link key={event._id} href={`/dashboard/events/${event._id}`}>
+                                <div className="flex items-center justify-between px-5 py-3.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <div className={`h-2 w-2 rounded-full shrink-0 ${TYPE_DOT[event.type] || 'bg-zinc-400'}`} />
+                                        <div className="min-w-0">
+                                            <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">{event.title}</p>
+                                            <p className="text-xs text-zinc-400 truncate">
+                                                {event.clubId?.name || event.clanId?.name || 'LX'}
+                                                {' · '}
+                                                {new Date(event.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                            </p>
                                         </div>
                                     </div>
-                                ))}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-
-                {/* Quick Info / Platform Updates */}
-                <Card className="border-none shadow-xl shadow-zinc-200/50 dark:shadow-none bg-primary text-white overflow-hidden relative">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
-                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-accent/20 rounded-full blur-2xl -ml-12 -mb-12"></div>
-
-                    <CardHeader>
-                        <CardTitle className="text-xl font-black">LX Platform</CardTitle>
-                        <p className="text-primary-foreground/70 text-sm font-medium">Empowering Excellence</p>
-                    </CardHeader>
-                    <CardContent className="space-y-6 relative z-10">
-                        <p className="text-sm leading-relaxed text-primary-foreground/90 font-medium">
-                            Manage your clubs, track clan points, and stay updated with upcoming events at Rishihood University.
-                        </p>
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-3 bg-white/10 p-4 rounded-2xl backdrop-blur-sm border border-white/10">
-                                <TrendingUp className="h-5 w-5 text-accent" />
-                                <div className="text-xs">
-                                    <p className="font-bold">Next Milestone</p>
-                                    <p className="text-primary-foreground/70 mt-0.5">Reach 10,000 active members</p>
+                                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 ml-4 ${STATUS_STYLES[event.status] || ''}`}>
+                                        {event.status?.toLowerCase()}
+                                    </span>
                                 </div>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
+                            </Link>
+                        ))}
+                    </div>
+                )}
             </div>
+        </div>
+    );
+}
+
+function DashboardSkeleton() {
+    return (
+        <div className="space-y-10 animate-pulse">
+            <div className="h-20 bg-zinc-100 dark:bg-zinc-800 rounded-2xl" />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[1,2,3,4].map(i => <div key={i} className="h-24 bg-zinc-100 dark:bg-zinc-800 rounded-xl" />)}
+            </div>
+            <div className="h-16 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-100 dark:border-zinc-800" />
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                {[1,2,3,4].map(i => <div key={i} className="h-12 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-100 dark:border-zinc-800" />)}
+            </div>
+            <div className="h-64 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-100 dark:border-zinc-800" />
         </div>
     );
 }
 
 export default function DashboardPage() {
     return (
-        <Suspense fallback={<LoadingOverlay message="Loading dashboard..." />}>
+        <Suspense fallback={<DashboardSkeleton />}>
             <DashboardContent />
         </Suspense>
     );

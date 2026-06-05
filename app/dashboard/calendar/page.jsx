@@ -5,10 +5,15 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Calendar as CalendarIcon } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+
+const EVENT_COLORS = {
+    CLUB: '#71717a',
+    CLAN: '#a1a1aa',
+    LX:   '#52525b',
+};
 
 export default function CalendarPage() {
     const [events, setEvents] = useState([]);
@@ -17,183 +22,135 @@ export default function CalendarPage() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetchEvents();
+        fetch('/api/calendar')
+            .then(r => r.ok ? r.json() : [])
+            .then(data => setEvents(data))
+            .catch(() => setEvents([]))
+            .finally(() => setLoading(false));
     }, []);
-
-    const fetchEvents = async () => {
-        try {
-            const response = await fetch('/api/calendar');
-            if (response.ok) {
-                const data = await response.json();
-                setEvents(data);
-            }
-        } catch (error) {
-            console.error('Error fetching events:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleEventClick = (info) => {
-        const event = events.find(e => e.id === info.event.id);
-        if (event) {
-            setSelectedEvent(event);
-            setDialogOpen(true);
-        }
-    };
-
-    const getEventColor = (type) => {
-        switch (type) {
-            case 'CLUB':
-                return '#3B82F6'; // Blue
-            case 'CLAN':
-                return '#A855F7'; // Purple
-            case 'LX':
-                return '#10B981'; // Green
-            default:
-                return '#6B7280'; // Gray
-        }
-    };
 
     const calendarEvents = events.map(event => ({
         id: event._id,
         title: event.title,
         start: event.startDate,
         end: event.endDate,
-        backgroundColor: getEventColor(event.type),
-        borderColor: getEventColor(event.type),
-        extendedProps: {
-            ...event,
-        },
+        backgroundColor: EVENT_COLORS[event.type] || EVENT_COLORS.LX,
+        borderColor: 'transparent',
+        extendedProps: { ...event },
     }));
 
+    const handleEventClick = (info) => {
+        const event = events.find(e => e._id === info.event.id);
+        if (event) {
+            setSelectedEvent(event);
+            setDialogOpen(true);
+        }
+    };
+
     return (
-        <div className="space-y-6">
+        <div className="space-y-8">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-start justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Calendar</h1>
-                    <p className="text-zinc-500 dark:text-zinc-400 mt-2">
-                        View all events across clubs, clans, and LX
+                    <h1 className="font-display text-3xl italic text-zinc-900 dark:text-zinc-100">Calendar</h1>
+                    <p className="text-sm text-zinc-400 mt-1">
+                        All scheduled events across clubs, clans, and LX
                     </p>
+                </div>
+                {/* Legend */}
+                <div className="flex items-center gap-3">
+                    {[
+                        { color: 'bg-zinc-600', label: 'Club' },
+                        { color: 'bg-zinc-400', label: 'Clan' },
+                        { color: 'bg-zinc-700', label: 'LX' },
+                    ].map(({ color, label }) => (
+                        <div key={label} className="flex items-center gap-1.5 text-xs text-zinc-500">
+                            <div className={`h-2 w-2 rounded-full ${color}`} />
+                            {label}
+                        </div>
+                    ))}
                 </div>
             </div>
 
-            {/* Legend */}
-            <Card>
-                <CardHeader>
-                    <CardTitle className="text-sm font-medium">Event Types</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex flex-wrap gap-4">
-                        <div className="flex items-center gap-2">
-                            <div className="h-3 w-3 rounded-lg bg-blue-500"></div>
-                            <span className="text-sm">Club Events</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <div className="h-3 w-3 rounded-lg bg-purple-500"></div>
-                            <span className="text-sm">Clan Events</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <div className="h-3 w-3 rounded-lg bg-green-500"></div>
-                            <span className="text-sm">LX Events</span>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-
             {/* Calendar */}
-            <Card>
-                <CardContent className="p-6">
-                    {loading ? (
-                        <div className="flex items-center justify-center py-16">
-                            <div className="text-zinc-500 dark:text-zinc-400">Loading calendar...</div>
-                        </div>
-                    ) : (
-                        <FullCalendar
-                            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-                            initialView="dayGridMonth"
-                            headerToolbar={{
-                                left: 'prev,next today',
-                                center: 'title',
-                                right: 'dayGridMonth,timeGridWeek,timeGridDay',
-                            }}
-                            events={calendarEvents}
-                            eventClick={handleEventClick}
-                            height="auto"
-                            eventDisplay="block"
-                            displayEventTime={true}
-                            eventTimeFormat={{
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                meridiem: false,
-                            }}
-                        />
-                    )}
-                </CardContent>
-            </Card>
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl p-5">
+                {loading ? (
+                    <div className="flex items-center justify-center py-16 gap-2 text-sm text-zinc-400">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Loading events…
+                    </div>
+                ) : (
+                    <FullCalendar
+                        plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+                        initialView="dayGridMonth"
+                        headerToolbar={{
+                            left: 'prev,next today',
+                            center: 'title',
+                            right: 'dayGridMonth,timeGridWeek,timeGridDay',
+                        }}
+                        events={calendarEvents}
+                        eventClick={handleEventClick}
+                        height="auto"
+                        eventDisplay="block"
+                        displayEventTime={true}
+                        eventTimeFormat={{
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            meridiem: false,
+                        }}
+                    />
+                )}
+            </div>
 
             {/* Event Detail Dialog */}
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogContent className="max-w-2xl">
+                <DialogContent className="max-w-lg">
                     <DialogHeader>
-                        <DialogTitle>{selectedEvent?.title}</DialogTitle>
+                        <DialogTitle className="font-display text-xl italic">{selectedEvent?.title}</DialogTitle>
                     </DialogHeader>
                     {selectedEvent && (
-                        <div className="space-y-4">
-                            <div>
-                                <span className={`
-                  inline-block px-2 py-1 text-xs rounded-lg
-                  ${selectedEvent.type === 'CLUB' ? 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300' : ''}
-                  ${selectedEvent.type === 'CLAN' ? 'bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300' : ''}
-                  ${selectedEvent.type === 'LX' ? 'bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300' : ''}
-                `}>
+                        <div className="space-y-4 text-sm">
+                            <div className="flex flex-wrap gap-2">
+                                <span className="text-[10px] font-medium text-zinc-500 bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 px-2 py-0.5 rounded">
                                     {selectedEvent.type}
                                 </span>
+                                {selectedEvent.status && (
+                                    <span className="text-[10px] font-medium text-zinc-500 bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 px-2 py-0.5 rounded">
+                                        {selectedEvent.status}
+                                    </span>
+                                )}
                             </div>
 
-                            <div>
-                                <h4 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-1">Description</h4>
-                                <p className="text-sm">{selectedEvent.description}</p>
-                            </div>
+                            {selectedEvent.description && (
+                                <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed">{selectedEvent.description}</p>
+                            )}
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <h4 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-1">Start Date</h4>
-                                    <p className="text-sm">{new Date(selectedEvent.startDate).toLocaleString()}</p>
+                                    <p className="text-xs text-zinc-400 mb-0.5">Start</p>
+                                    <p className="font-medium text-zinc-800 dark:text-zinc-200">
+                                        {new Date(selectedEvent.startDate).toLocaleString()}
+                                    </p>
                                 </div>
                                 <div>
-                                    <h4 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-1">End Date</h4>
-                                    <p className="text-sm">{new Date(selectedEvent.endDate).toLocaleString()}</p>
+                                    <p className="text-xs text-zinc-400 mb-0.5">End</p>
+                                    <p className="font-medium text-zinc-800 dark:text-zinc-200">
+                                        {new Date(selectedEvent.endDate).toLocaleString()}
+                                    </p>
                                 </div>
                             </div>
 
-                            {selectedEvent.roomId && (
+                            {selectedEvent.budgetAllocated != null && (
                                 <div>
-                                    <h4 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-1">Room</h4>
-                                    <p className="text-sm">{selectedEvent.roomId.name}</p>
+                                    <p className="text-xs text-zinc-400 mb-0.5">Budget</p>
+                                    <p className="font-medium text-zinc-800 dark:text-zinc-200">₹{selectedEvent.budgetAllocated.toLocaleString()}</p>
                                 </div>
                             )}
 
-                            <div>
-                                <h4 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-1">Budget</h4>
-                                <p className="text-sm">₹{selectedEvent.budgetAllocated.toLocaleString()}</p>
-                            </div>
-
-                            <div>
-                                <h4 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-1">Status</h4>
-                                <span className={`
-                  inline-block px-2 py-1 text-xs font-medium rounded-lg
-                  ${selectedEvent.status === 'APPROVED' ? 'bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300' : ''}
-                  ${selectedEvent.status === 'PENDING' ? 'bg-yellow-100 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-300' : ''}
-                  ${selectedEvent.status === 'REJECTED' ? 'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300' : ''}
-                `}>
-                                    {selectedEvent.status}
-                                </span>
-                            </div>
-
-                            <div className="flex justify-end pt-4">
-                                <Button onClick={() => setDialogOpen(false)}>Close</Button>
+                            <div className="flex justify-end pt-2">
+                                <Button size="sm" variant="outline" className="rounded-lg h-8 text-xs" onClick={() => setDialogOpen(false)}>
+                                    Close
+                                </Button>
                             </div>
                         </div>
                     )}
