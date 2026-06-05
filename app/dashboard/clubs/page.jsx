@@ -77,7 +77,7 @@ async function ClubsContent() {
                             <Link key={club._id} href={`/dashboard/clubs/${club._id}`} className="group block">
                                 <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl p-5 hover:border-zinc-200 dark:hover:border-zinc-700 transition-colors h-full relative">
                                     {isAdmin && (
-                                        <div className="absolute top-4 right-4" onClick={e => e.preventDefault()}>
+                                        <div className="absolute top-4 right-4">
                                             <ClubActions clubId={club._id} clubName={club.name} />
                                         </div>
                                     )}

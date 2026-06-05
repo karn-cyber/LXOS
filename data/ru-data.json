@@ -1,6 +1,32 @@
 {
   "data": [
     {
+      "userId": 1001,
+      "email": "neelanshu.2024@nst.rishihood.edu.in",
+      "userType": "ADMIN",
+      "profileImg": null,
+      "name": "Neelanshu",
+      "roleInfo": null,
+      "contactEmail": "neelanshu.2024@nst.rishihood.edu.in",
+      "course": null,
+      "batch": "2024",
+      "designation": "Admin",
+      "department": null
+    },
+    {
+      "userId": 1002,
+      "email": "sast@rishihood.edu.in",
+      "userType": "CLUB_HEAD",
+      "profileImg": null,
+      "name": "SAST",
+      "roleInfo": null,
+      "contactEmail": "sast@rishihood.edu.in",
+      "course": null,
+      "batch": null,
+      "designation": "Club Head",
+      "department": null
+    },
+    {
       "userId": 6,
       "email": "shubham.k@rishihood.edu.in",
       "userType": "EMPLOYEE",
