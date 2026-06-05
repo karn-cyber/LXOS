@@ -23,7 +23,7 @@ const navigation = [
   { name: 'Budget', href: '/dashboard/budget', icon: Wallet, permission: PERMISSIONS.VIEW_ALL_BUDGETS },
   { name: 'Achievements', href: '/dashboard/achievements', icon: Trophy, permission: null },
   { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3, permission: PERMISSIONS.VIEW_ANALYTICS },
-  { name: 'Repository', href: '/dashboard/files', icon: Folder, permission: null },
+  { name: 'Reimbursements', href: '/dashboard/files', icon: Folder, permission: null },
   { name: 'Approvals', href: '/dashboard/approvals', icon: CheckCircle, permission: PERMISSIONS.APPROVE_EVENT },
 ];
 

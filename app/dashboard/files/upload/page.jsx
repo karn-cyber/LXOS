@@ -1,332 +1,372 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import {
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-    FormDescription,
-} from '@/components/ui/form';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useToast } from '@/components/ui/use-toast';
-import { Loader2, Upload, File as FileIcon, X } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { Label } from '@/components/ui/label';
+import { Loader2, Upload, X, ImageIcon, Receipt, ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 
-const uploadSchema = z.object({
-    fileName: z.string().min(2, 'File name must be at least 2 characters'),
-    description: z.string().optional(),
-    tags: z.string().optional(),
-    clubId: z.string().optional(),
-    eventId: z.string().optional(),
-});
+const CATEGORIES = ['Food', 'Travel', 'Materials', 'Equipment', 'Printing', 'Accommodation', 'Other'];
 
-export default function FileUploadPage() {
-    const { toast } = useToast();
+function formatSize(bytes) {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+export default function SubmitReimbursementPage() {
     const router = useRouter();
-    const [loading, setLoading] = useState(false);
-    const [uploading, setUploading] = useState(false);
-    const [file, setFile] = useState(null);
-    const [clubs, setClubs] = useState([]);
-    const [events, setEvents] = useState([]);
+    const fileInputRef = useRef(null);
 
-    const form = useForm({
-        resolver: zodResolver(uploadSchema),
-        defaultValues: {
-            fileName: '',
-            description: '',
-            tags: '',
-            clubId: '',
-            eventId: '',
-        },
-    });
+    const [title, setTitle] = useState('');
+    const [description, setDescription] = useState('');
+    const [amount, setAmount] = useState('');
+    const [expenseDate, setExpenseDate] = useState('');
+    const [category, setCategory] = useState('Other');
+    const [bills, setBills] = useState([]); // { file, preview, uploading, url, error }
+    const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState('');
 
-    useEffect(() => {
-        // Fetch clubs and events for selection
-        const fetchData = async () => {
-            try {
-                const [clubsRes, eventsRes] = await Promise.all([
-                    fetch('/api/clubs'),
-                    fetch('/api/events'),
-                ]);
-                if (clubsRes.ok) setClubs(await clubsRes.json());
-                if (eventsRes.ok) setEvents(await eventsRes.json());
-            } catch (error) {
-                console.error('Fetch error:', error);
-            }
-        };
-        fetchData();
-    }, []);
+    const today = new Date().toISOString().split('T')[0];
 
-    const handleFileChange = (e) => {
-        const selectedFile = e.target.files?.[0];
-        if (selectedFile) {
-            setFile(selectedFile);
-            // Auto-fill filename if empty
-            if (!form.getValues('fileName')) {
-                form.setValue('fileName', selectedFile.name);
-            }
-        }
+    const handleFilesSelected = (e) => {
+        const selected = Array.from(e.target.files || []);
+        const newBills = selected.map(file => ({
+            file,
+            preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : null,
+            uploading: false,
+            url: null,
+            error: null,
+        }));
+        setBills(prev => [...prev, ...newBills]);
+        e.target.value = '';
     };
 
-    const onSubmit = async (values) => {
-        if (!file) {
-            toast({ title: 'Please select a file', variant: 'destructive' });
-            return;
-        }
+    const removeBill = (index) => {
+        setBills(prev => {
+            const next = [...prev];
+            if (next[index].preview) URL.revokeObjectURL(next[index].preview);
+            next.splice(index, 1);
+            return next;
+        });
+    };
 
-        setLoading(true);
-        setUploading(true);
+    const handleDrop = (e) => {
+        e.preventDefault();
+        const dropped = Array.from(e.dataTransfer.files);
+        const newBills = dropped.map(file => ({
+            file,
+            preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : null,
+            uploading: false,
+            url: null,
+            error: null,
+        }));
+        setBills(prev => [...prev, ...newBills]);
+    };
+
+    const uploadBill = async (billEntry) => {
+        const formData = new FormData();
+        formData.append('file', billEntry.file);
+        formData.append('path', 'reimbursements');
+        let res;
+        try {
+            res = await fetch('/api/upload', { method: 'POST', body: formData });
+        } catch (networkErr) {
+            throw new Error('Network error — check that the dev server is running and Supabase env vars are set.');
+        }
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || `Upload failed (HTTP ${res.status})`);
+        }
+        const data = await res.json();
+        if (!data.url) throw new Error('Server did not return a file URL');
+        return data.url;
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+
+        if (!title.trim()) return setError('Please enter a title.');
+        if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) return setError('Please enter a valid amount.');
+        if (!expenseDate) return setError('Please select the expense date.');
+        if (bills.length === 0) return setError('Please attach at least one bill image.');
+
+        setSubmitting(true);
 
         try {
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('path', 'repository');
+            // Upload all bills in parallel, tracking progress per file
+            const uploadedBills = [];
+            setBills(prev => prev.map(b => ({ ...b, uploading: true })));
 
-            // 1. Upload using server-side API
-            const res = await fetch('/api/upload', {
-                method: 'POST',
-                body: formData,
+            const results = await Promise.allSettled(
+                bills.map(b => uploadBill(b))
+            );
+
+            const failedIndexes = [];
+            results.forEach((result, i) => {
+                if (result.status === 'fulfilled') {
+                    uploadedBills.push({
+                        originalName: bills[i].file.name,
+                        path: result.value,
+                        mimeType: bills[i].file.type,
+                        size: bills[i].file.size,
+                    });
+                } else {
+                    failedIndexes.push(i);
+                }
             });
 
-            const text = await res.text();
-            let uploadData;
-            try {
-                uploadData = JSON.parse(text);
-            } catch (parseError) {
-                console.error('Failed to parse response as JSON. Raw text:', text);
-                throw new Error('Server returned malformed response. Check console for details.');
+            setBills(prev => prev.map((b, i) => ({
+                ...b,
+                uploading: false,
+                url: results[i].status === 'fulfilled' ? results[i].value : null,
+                error: results[i].status === 'rejected' ? results[i].reason?.message : null,
+            })));
+
+            if (failedIndexes.length > 0) {
+                setError(`${failedIndexes.length} file(s) failed to upload. Please remove them and try again.`);
+                setSubmitting(false);
+                return;
             }
 
-            if (!res.ok) {
-                throw new Error(uploadData.error || 'Upload failed');
-            }
-
-            // 2. Save Record to Database
-            const payload = {
-                fileName: values.fileName,
-                filePath: uploadData.url,
-                fileType: file.type || 'application/octet-stream',
-                fileSize: file.size,
-                description: values.description,
-                clubId: values.clubId && values.clubId !== 'none' ? values.clubId : null,
-                eventId: values.eventId && values.eventId !== 'none' ? values.eventId : null,
-                tags: values.tags ? values.tags.split(',').map(tag => tag.trim()) : [],
-                semester: 'Spring 2026', // Default for now
-            };
-
-            const response = await fetch('/api/files', {
+            // Submit reimbursement
+            const res = await fetch('/api/reimbursements', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
+                body: JSON.stringify({
+                    title: title.trim(),
+                    description: description.trim(),
+                    amount: Number(amount),
+                    expenseDate,
+                    category,
+                    bills: uploadedBills,
+                }),
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to save file record');
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.error || 'Failed to submit');
             }
 
-            toast({
-                title: 'File Uploaded',
-                description: 'The file has been saved to the repository',
-            });
             router.push('/dashboard/files');
             router.refresh();
-        } catch (error) {
-            console.error('Upload process error:', error);
-            toast({
-                title: 'Upload Failed',
-                description: error.message || 'An error occurred during upload',
-                variant: 'destructive',
-            });
-        } finally {
-            setLoading(false);
-            setUploading(false);
+        } catch (err) {
+            setError(err.message || 'Something went wrong. Please try again.');
+            setSubmitting(false);
         }
     };
 
     return (
-        <div className="max-w-2xl mx-auto space-y-6">
-            <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold tracking-tight">Upload File</h1>
-                <Button variant="ghost" onClick={() => router.back()}>Cancel</Button>
+        <div className="max-w-2xl mx-auto space-y-8">
+            {/* Header */}
+            <div className="flex items-center gap-3">
+                <Link href="/dashboard/files">
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-zinc-400 hover:text-zinc-600">
+                        <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                </Link>
+                <div>
+                    <h1 className="font-display text-3xl italic text-zinc-900 dark:text-zinc-100">Submit Reimbursement</h1>
+                    <p className="text-sm text-zinc-400 mt-0.5">Attach your bills and claim the amount spent</p>
+                </div>
             </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>File Details</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                            {/* File Selector */}
-                            <div className="space-y-4">
-                                <FormLabel>Select File</FormLabel>
-                                {!file ? (
-                                    <div className="border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-lg p-12 text-center">
-                                        <input
-                                            type="file"
-                                            id="file-input"
-                                            className="hidden"
-                                            onChange={handleFileChange}
+            <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Bill upload zone */}
+                <div className="space-y-3">
+                    <Label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                        Bill Images <span className="text-red-400">*</span>
+                    </Label>
+                    <div
+                        className="border-2 border-dashed border-zinc-200 dark:border-zinc-700 rounded-xl p-8 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                        onClick={() => fileInputRef.current?.click()}
+                        onDrop={handleDrop}
+                        onDragOver={e => e.preventDefault()}
+                    >
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            multiple
+                            accept="image/*,.pdf"
+                            className="hidden"
+                            onChange={handleFilesSelected}
+                        />
+                        <Upload className="h-8 w-8 text-zinc-300 mx-auto mb-3" />
+                        <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                            Drop files here or click to select
+                        </p>
+                        <p className="text-xs text-zinc-400 mt-1">JPG, PNG, PDF · Multiple files at once · Max 10 MB each</p>
+                    </div>
+
+                    {/* Preview grid */}
+                    {bills.length > 0 && (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            {bills.map((bill, i) => (
+                                <div
+                                    key={i}
+                                    className={`relative border rounded-xl overflow-hidden bg-zinc-50 dark:bg-zinc-900 ${
+                                        bill.error ? 'border-red-200 dark:border-red-900' : 'border-zinc-100 dark:border-zinc-800'
+                                    }`}
+                                >
+                                    {bill.preview ? (
+                                        <img
+                                            src={bill.preview}
+                                            alt={bill.file.name}
+                                            className="w-full h-32 object-cover"
                                         />
-                                        <label htmlFor="file-input" className="cursor-pointer">
-                                            <div className="flex flex-col items-center">
-                                                <Upload className="h-10 w-10 text-zinc-400 mb-4" />
-                                                <p className="text-sm font-medium">Click to choose a file</p>
-                                                <p className="text-xs text-zinc-500 mt-1">Maximum size: 50MB</p>
-                                            </div>
-                                        </label>
-                                    </div>
-                                ) : (
-                                    <div className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800">
-                                        <div className="flex items-center gap-3 overflow-hidden">
-                                            <div className="h-10 w-10 rounded-lg bg-blue-100 dark:bg-blue-950 flex items-center justify-center flex-shrink-0">
-                                                <FileIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                                            </div>
-                                            <div className="min-w-0">
-                                                <p className="text-sm font-medium truncate">{file.name}</p>
-                                                <p className="text-xs text-zinc-500">{(file.size / 1024).toFixed(1)} KB</p>
-                                            </div>
+                                    ) : (
+                                        <div className="w-full h-32 flex items-center justify-center">
+                                            <ImageIcon className="h-8 w-8 text-zinc-300" />
                                         </div>
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => setFile(null)}
-                                        >
-                                            <X className="h-4 w-4" />
-                                        </Button>
+                                    )}
+                                    <div className="p-2">
+                                        <p className="text-[10px] text-zinc-500 truncate">{bill.file.name}</p>
+                                        <p className="text-[10px] text-zinc-400">{formatSize(bill.file.size)}</p>
+                                        {bill.uploading && (
+                                            <p className="text-[10px] text-primary flex items-center gap-1 mt-0.5">
+                                                <Loader2 className="h-2.5 w-2.5 animate-spin" /> Uploading…
+                                            </p>
+                                        )}
+                                        {bill.url && (
+                                            <p className="text-[10px] text-green-600 mt-0.5">✓ Uploaded</p>
+                                        )}
+                                        {bill.error && (
+                                            <p className="text-[10px] text-red-500 mt-0.5">{bill.error}</p>
+                                        )}
                                     </div>
-                                )}
-                            </div>
-
-                            <FormField
-                                control={form.control}
-                                name="fileName"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Display Name</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="e.g. Budget Report 2026" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="description"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Description</FormLabel>
-                                        <FormControl>
-                                            <Textarea placeholder="What is this file for?" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <FormField
-                                    control={form.control}
-                                    name="clubId"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Club (Optional)</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Select club" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value="none">None</SelectItem>
-                                                    {clubs.map((club) => (
-                                                        <SelectItem key={club._id} value={club._id}>{club.name}</SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
+                                    {!submitting && (
+                                        <button
+                                            type="button"
+                                            onClick={() => removeBill(i)}
+                                            className="absolute top-1.5 right-1.5 h-5 w-5 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
+                                        >
+                                            <X className="h-3 w-3" />
+                                        </button>
                                     )}
-                                />
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
 
-                                <FormField
-                                    control={form.control}
-                                    name="eventId"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Event (Optional)</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Select event" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value="none">None</SelectItem>
-                                                    {events.map((event) => (
-                                                        <SelectItem key={event._id} value={event._id}>{event.title}</SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
+                {/* Form fields */}
+                <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl p-5 space-y-5">
+                    <div className="space-y-1.5">
+                        <Label htmlFor="title" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                            What was this expense for? <span className="text-red-400">*</span>
+                        </Label>
+                        <Input
+                            id="title"
+                            placeholder="e.g. Dinner for club meeting, Printed banners for event"
+                            value={title}
+                            onChange={e => setTitle(e.target.value)}
+                            className="rounded-lg border-zinc-200 dark:border-zinc-700"
+                            required
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                            <Label htmlFor="amount" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                                Amount (₹) <span className="text-red-400">*</span>
+                            </Label>
+                            <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-sm font-medium">₹</span>
+                                <Input
+                                    id="amount"
+                                    type="number"
+                                    min="1"
+                                    step="0.01"
+                                    placeholder="0.00"
+                                    value={amount}
+                                    onChange={e => setAmount(e.target.value)}
+                                    className="pl-7 rounded-lg border-zinc-200 dark:border-zinc-700"
+                                    required
                                 />
                             </div>
+                        </div>
 
-                            <FormField
-                                control={form.control}
-                                name="tags"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Tags</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="e.g. report, budget, 2026 (comma separated)" {...field} />
-                                        </FormControl>
-                                        <FormDescription>Help others find this file by adding tags.</FormDescription>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
+                        <div className="space-y-1.5">
+                            <Label htmlFor="expenseDate" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                                Date of Expense <span className="text-red-400">*</span>
+                            </Label>
+                            <Input
+                                id="expenseDate"
+                                type="date"
+                                max={today}
+                                value={expenseDate}
+                                onChange={e => setExpenseDate(e.target.value)}
+                                className="rounded-lg border-zinc-200 dark:border-zinc-700"
+                                required
                             />
+                        </div>
+                    </div>
 
-                            <Button type="submit" className="w-full" disabled={loading || uploading}>
-                                {(loading || uploading) ? (
-                                    <>
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        Uploading...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Upload className="mr-2 h-4 w-4" />
-                                        Upload to Repository
-                                    </>
-                                )}
-                            </Button>
-                        </form>
-                    </Form>
-                </CardContent>
-            </Card>
+                    <div className="space-y-1.5">
+                        <Label htmlFor="category" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                            Category
+                        </Label>
+                        <div className="flex flex-wrap gap-2">
+                            {CATEGORIES.map(cat => (
+                                <button
+                                    key={cat}
+                                    type="button"
+                                    onClick={() => setCategory(cat)}
+                                    className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${
+                                        category === cat
+                                            ? 'bg-primary text-white border-primary'
+                                            : 'bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700 hover:border-zinc-300'
+                                    }`}
+                                >
+                                    {cat}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <Label htmlFor="description" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                            Additional Details
+                        </Label>
+                        <Textarea
+                            id="description"
+                            placeholder="Any context that will help the reviewer — event name, number of people, reason, etc."
+                            value={description}
+                            onChange={e => setDescription(e.target.value)}
+                            className="rounded-lg border-zinc-200 dark:border-zinc-700 resize-none h-24"
+                        />
+                    </div>
+                </div>
+
+                {error && (
+                    <p className="text-sm text-red-500 bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/30 rounded-lg px-4 py-3">
+                        {error}
+                    </p>
+                )}
+
+                <div className="flex gap-3">
+                    <Button
+                        type="submit"
+                        disabled={submitting}
+                        className="flex-1 bg-primary text-white hover:bg-primary/90 rounded-xl h-11 font-medium"
+                    >
+                        {submitting ? (
+                            <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Submitting…</>
+                        ) : (
+                            <><Receipt className="h-4 w-4 mr-2" /> Submit for Reimbursement</>
+                        )}
+                    </Button>
+                    <Link href="/dashboard/files">
+                        <Button type="button" variant="outline" className="rounded-xl h-11 px-5">
+                            Cancel
+                        </Button>
+                    </Link>
+                </div>
+            </form>
         </div>
     );
 }

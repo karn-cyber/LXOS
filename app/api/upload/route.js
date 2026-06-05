@@ -1,106 +1,56 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import { auth } from '@/auth';
+import { writeFile, mkdir } from 'fs/promises';
+import { join } from 'path';
+import { auth } from '@clerk/nextjs/server';
 
-// Use service role key to bypass RLS if available, otherwise fallback to anon key
-const rawSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseUrl = rawSupabaseUrl.trim().replace(/\/$/, '');
-const supabaseKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim();
-const bucketName = (process.env.NEXT_PUBLIC_SUPABASE_BUCKET || 'lx-storage').trim();
+export const runtime = 'nodejs';
 
 export async function POST(request) {
-    console.log('Upload API: Request received');
-
-    // Validate URL format
-    if (supabaseUrl.includes('supabase.com') && !supabaseUrl.includes('.supabase.co')) {
-        console.error('Upload API: CRITICAL ERROR - Your NEXT_PUBLIC_SUPABASE_URL looks like a Dashboard URL (supabase.com). It MUST be an API URL (typically https://xyz.supabase.co). Please check your .env.local');
-        return NextResponse.json({
-            error: 'Invalid Supabase URL. Please use the "Project URL" from Settings > API in your Dashboard, not the dashboard browser URL.'
-        }, { status: 500 });
-    }
-
-    console.log('Upload API: Using URL:', supabaseUrl.substring(0, 25) + '...');
     try {
-        const session = await auth();
-        if (!session) {
-            console.log('Upload API: Unauthorized');
+        // Auth check
+        let userId = null;
+        try {
+            const session = await auth();
+            userId = session?.userId ?? null;
+        } catch {
+            // ignore clerk errors
+        }
+
+        if (!userId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        console.log('Upload API: Session found for', session.user.email);
-
+        // Parse form data
         let formData;
         try {
             formData = await request.formData();
         } catch (err) {
-            console.error('Upload API: Failed to parse form data', err);
-            return NextResponse.json({ error: 'Failed to process form data: ' + err.message }, { status: 400 });
+            return NextResponse.json({ error: 'Failed to parse form data: ' + err.message }, { status: 400 });
         }
 
         const file = formData.get('file');
-        const path = formData.get('path') || 'general';
+        const uploadPath = formData.get('path') || 'general';
 
-        if (!file) {
-            console.log('Upload API: No file provided');
+        if (!file || typeof file === 'string') {
             return NextResponse.json({ error: 'No file provided' }, { status: 400 });
         }
 
-        console.log(`Upload API: Processing file "${file.name}" (${file.size} bytes) for path "${path}"`);
-
-        if (!supabaseUrl || !supabaseKey) {
-            console.error('Upload API: Missing Supabase credentials');
-            return NextResponse.json({ error: 'Storage configuration error' }, { status: 500 });
-        }
-
-        const supabase = createClient(supabaseUrl, supabaseKey);
-
         const bytes = await file.arrayBuffer();
-        const blob = new Blob([bytes], { type: file.type });
+        const buffer = Buffer.from(bytes);
 
-        // Create a unique file path
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-        const filePath = `${path}/${fileName}`;
+        // Build unique filename
+        const ext = file.name.includes('.') ? file.name.split('.').pop().toLowerCase() : 'bin';
+        const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
-        console.log(`Upload API: Using bucket "${bucketName}". Path: "${filePath}"`);
+        // Save to public/uploads/<path>/
+        const uploadDir = join(process.cwd(), 'public', 'uploads', uploadPath);
+        await mkdir(uploadDir, { recursive: true });
+        await writeFile(join(uploadDir, uniqueName), buffer);
 
-        // Check bucket existence first (optional but helps debug)
-        const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
-        if (bucketError) {
-            console.error('Upload API: Bucket list error:', bucketError);
-        } else {
-            const bucketExists = buckets.find(b => b.name === bucketName);
-            if (!bucketExists) {
-                console.warn(`Upload API: Bucket "${bucketName}" not found! Available buckets:`, buckets.map(b => b.name).join(', '));
-                return NextResponse.json({ error: `Bucket "${bucketName}" not found in Supabase. Please create it or check your .env.` }, { status: 500 });
-            }
-        }
-
-        console.log('Upload API: Starting Supabase upload...');
-
-        // Upload to Supabase Storage
-        const { data, error: uploadError } = await supabase.storage
-            .from(bucketName)
-            .upload(filePath, blob, {
-                contentType: file.type,
-                cacheControl: '3600',
-                upsert: true
-            });
-
-        if (uploadError) {
-            console.error('Upload API: Supabase error:', uploadError);
-            return NextResponse.json({ error: uploadError.message }, { status: 500 });
-        }
-
-        // Get public URL
-        const { data: { publicUrl } } = supabase.storage
-            .from(bucketName)
-            .getPublicUrl(filePath);
-
-        console.log('Upload API: Success! URL:', publicUrl);
+        const publicUrl = `/uploads/${uploadPath}/${uniqueName}`;
         return NextResponse.json({ url: publicUrl, success: true });
     } catch (error) {
-        console.error('Upload API: Critical failure:', error);
-        return NextResponse.json({ error: 'Internal server error: ' + error.message }, { status: 500 });
+        console.error('[upload] error:', error);
+        return NextResponse.json({ error: error?.message || 'Upload failed' }, { status: 500 });
     }
 }
