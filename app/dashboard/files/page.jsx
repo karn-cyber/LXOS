@@ -1,4 +1,3 @@
-import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import dbConnect from '@/lib/db';
 import File from '@/models/File';
@@ -9,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Plus, FileText, Image, File as FileIcon, Download } from 'lucide-react';
 import Link from 'next/link';
+import { getDashboardSession } from '@/lib/dashboard-session';
 
 async function getFiles() {
     await dbConnect();
@@ -30,7 +30,7 @@ async function getFiles() {
 }
 
 export default async function FilesPage() {
-    const session = await auth();
+    const session = await getDashboardSession();
 
     if (!session) {
         redirect('/login');
@@ -93,7 +93,7 @@ export default async function FilesPage() {
                                 <CardHeader>
                                     <div className="flex items-start justify-between gap-2">
                                         <div className="flex items-start gap-3 min-w-0">
-                                            <div className="h-10 w-10 rounded-lg bg-blue-100 dark:bg-blue-950 flex items-center justify-center flex-shrink-0">
+                                            <div className="h-10 w-10 rounded-lg bg-blue-100 dark:bg-blue-950 flex items-center justify-center shrink-0">
                                                 <Icon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                                             </div>
                                             <div className="flex-1 min-w-0">

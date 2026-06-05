@@ -1,4 +1,3 @@
-import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import dbConnect from '@/lib/db';
 import Event from '@/models/Event';
@@ -8,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, CalendarDays } from 'lucide-react';
 import { hasPermission, PERMISSIONS } from '@/lib/permissions';
+import { getDashboardSession } from '@/lib/dashboard-session';
 
 async function getEvents() {
     await dbConnect();
@@ -30,7 +30,7 @@ async function getEvents() {
 }
 
 export default async function EventsPage() {
-    const session = await auth();
+    const session = await getDashboardSession();
 
     if (!session) {
         redirect('/login');
@@ -90,7 +90,7 @@ export default async function EventsPage() {
                 <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
                     {events.map((event) => (
                         <Link key={event._id} href={`/dashboard/events/${event._id}`} className="group h-full">
-                            <Card className="h-full border-none shadow-xl shadow-zinc-200/40 dark:shadow-none bg-white dark:bg-zinc-900 rounded-3xl overflow-hidden hover:translate-y-[-8px] transition-all duration-300 relative">
+                            <Card className="h-full border-none shadow-xl shadow-zinc-200/40 dark:shadow-none bg-white dark:bg-zinc-900 rounded-3xl overflow-hidden hover:-translate-y-2 transition-all duration-300 relative">
                                 <CardHeader className="pt-8 px-8">
                                     <div className="flex items-start justify-between">
                                         <div className="flex flex-col gap-2">

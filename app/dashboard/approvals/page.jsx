@@ -1,4 +1,3 @@
-import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import dbConnect from '@/lib/db';
 import Approval from '@/models/Approval';
@@ -10,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Clock, CheckCircle, XCircle, Calendar, DollarSign } from 'lucide-react';
 import Link from 'next/link';
+import { getDashboardSession } from '@/lib/dashboard-session';
 
 // Make sure models are registered for populate
 import '@/models/Event';
@@ -53,7 +53,7 @@ async function getPendingApprovals() {
 
 
 export default async function ApprovalsPage() {
-    const session = await auth();
+    const session = await getDashboardSession();
 
     if (!session) {
         redirect('/login');

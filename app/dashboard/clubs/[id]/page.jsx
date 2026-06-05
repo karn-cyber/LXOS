@@ -1,4 +1,3 @@
-import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import dbConnect from '@/lib/db';
 import Club from '@/models/Club';
@@ -12,6 +11,7 @@ import { Plus, Users, DollarSign, Calendar, TrendingUp, Trophy, FileText, Image 
 import Link from 'next/link';
 import ClubUpdates from '@/components/clubs/club-updates';
 import BudgetController from '@/components/admin/budget-controller';
+import { getDashboardSession } from '@/lib/dashboard-session';
 
 async function getClubData(id, session) {
     try {
@@ -61,7 +61,7 @@ async function getClubData(id, session) {
 
 export default async function ClubDetailPage(props) {
     const params = await props.params;
-    const session = await auth();
+    const session = await getDashboardSession();
 
     if (!session) {
         redirect('/login');

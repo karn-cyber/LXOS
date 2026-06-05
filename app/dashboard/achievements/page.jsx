@@ -1,4 +1,3 @@
-import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import dbConnect from '@/lib/db';
 import Achievement from '@/models/Achievement';
@@ -10,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Trophy, Calendar, Users } from 'lucide-react';
 import Link from 'next/link';
+import { getDashboardSession } from '@/lib/dashboard-session';
 
 async function getAchievements(session) {
     await dbConnect();
@@ -33,7 +33,7 @@ async function getAchievements(session) {
 }
 
 export default async function AchievementsPage() {
-    const session = await auth();
+    const session = await getDashboardSession();
 
     if (!session) {
         redirect('/login');

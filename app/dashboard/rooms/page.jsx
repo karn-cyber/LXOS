@@ -1,4 +1,3 @@
-import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import dbConnect from '@/lib/db';
 import Room from '@/models/Room';
@@ -10,6 +9,7 @@ import { MapPin, Users, Plus, Calendar as CalendarIcon, CheckCircle2 } from 'luc
 import Link from 'next/link';
 import RoomCalendar from '@/components/rooms/room-calendar';
 import { hasPermission, PERMISSIONS } from '@/lib/permissions';
+import { getDashboardSession } from '@/lib/dashboard-session';
 
 async function getRooms() {
     await dbConnect();
@@ -25,7 +25,7 @@ async function getRooms() {
 }
 
 export default async function RoomsPage() {
-    const session = await auth();
+    const session = await getDashboardSession();
 
     if (!session) {
         redirect('/login');

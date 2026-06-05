@@ -1,4 +1,3 @@
-import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import dbConnect from '@/lib/db';
 import Club from '@/models/Club';
@@ -7,6 +6,7 @@ import Event from '@/models/Event';
 import Expense from '@/models/Expense';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DollarSign, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react';
+import { getDashboardSession } from '@/lib/dashboard-session';
 
 async function getBudgetData() {
     await dbConnect();
@@ -73,7 +73,7 @@ async function getBudgetData() {
 }
 
 export default async function BudgetPage() {
-    const session = await auth();
+    const session = await getDashboardSession();
 
     if (!session) {
         redirect('/login');

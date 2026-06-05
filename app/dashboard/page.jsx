@@ -12,44 +12,59 @@ import { CalendarDays, Users, Flag, TrendingUp } from 'lucide-react';
 import { DashboardSkeleton } from '@/components/skeletons/dashboard-skeleton';
 
 async function getDashboardStats() {
-    await dbConnect();
+    try {
+        await dbConnect();
 
-    const [totalEvents, totalClubs, totalClans, upcomingEvents] = await Promise.all([
-        Event.countDocuments(),
-        Club.countDocuments({ isActive: true }),
-        Clan.countDocuments(),
-        Event.countDocuments({
-            startDate: { $gte: new Date() },
-            status: 'APPROVED'
-        }),
-    ]);
+        const [totalEvents, totalClubs, totalClans, upcomingEvents] = await Promise.all([
+            Event.countDocuments(),
+            Club.countDocuments({ isActive: true }),
+            Clan.countDocuments(),
+            Event.countDocuments({
+                startDate: { $gte: new Date() },
+                status: 'APPROVED'
+            }),
+        ]);
 
-    return {
-        totalEvents,
-        totalClubs,
-        totalClans,
-        upcomingEvents,
-    };
+        return {
+            totalEvents,
+            totalClubs,
+            totalClans,
+            upcomingEvents,
+        };
+    } catch (error) {
+        console.error('Failed to load dashboard stats:', error.message);
+        return {
+            totalEvents: 0,
+            totalClubs: 0,
+            totalClans: 0,
+            upcomingEvents: 0,
+        };
+    }
 }
 
 async function getRecentEvents() {
-    await dbConnect();
+    try {
+        await dbConnect();
 
-    const events = await Event.find()
-        .sort({ createdAt: -1 })
-        .limit(5)
-        .populate('clubId', 'name')
-        .populate('clanId', 'name')
-        .populate('createdBy', 'name')
-        .lean();
+        const events = await Event.find()
+            .sort({ createdAt: -1 })
+            .limit(5)
+            .populate('clubId', 'name')
+            .populate('clanId', 'name')
+            .populate('createdBy', 'name')
+            .lean();
 
-    return events.map(event => ({
-        ...event,
-        _id: event._id.toString(),
-        clubId: event.clubId ? { ...event.clubId, _id: event.clubId._id.toString() } : null,
-        clanId: event.clanId ? { ...event.clanId, _id: event.clanId._id.toString() } : null,
-        createdBy: event.createdBy ? { ...event.createdBy, _id: event.createdBy._id.toString() } : null,
-    }));
+        return events.map(event => ({
+            ...event,
+            _id: event._id.toString(),
+            clubId: event.clubId ? { ...event.clubId, _id: event.clubId._id.toString() } : null,
+            clanId: event.clanId ? { ...event.clanId, _id: event.clanId._id.toString() } : null,
+            createdBy: event.createdBy ? { ...event.createdBy, _id: event.createdBy._id.toString() } : null,
+        }));
+    } catch (error) {
+        console.error('Failed to load recent events:', error.message);
+        return [];
+    }
 }
 
 // Get user type from RU data

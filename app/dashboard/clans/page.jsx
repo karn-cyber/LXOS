@@ -1,4 +1,3 @@
-import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import dbConnect from '@/lib/db';
 import Clan from '@/models/Clan';
@@ -9,6 +8,7 @@ import { Flag, Trophy, Plus, DollarSign, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import BudgetController from '@/components/admin/budget-controller';
 import PointsManager from '@/components/clans/points-manager';
+import { getDashboardSession } from '@/lib/dashboard-session';
 
 async function getClans() {
     try {
@@ -76,7 +76,7 @@ async function getClans() {
 export default async function ClansPage() {
     let session;
     try {
-        session = await auth();
+        session = await getDashboardSession();
     } catch (error) {
         console.warn('Auth failed, using mock session:', error.message);
         // Mock session for development
@@ -149,13 +149,13 @@ export default async function ClansPage() {
                                 key={clan._id}
                                 className={`group relative flex flex-col md:flex-row items-center gap-6 p-6 rounded-3xl border transition-all duration-300 hover:translate-x-2
                                     ${isTop
-                                        ? 'bg-gradient-to-r from-yellow-50 to-white dark:from-yellow-900/10 dark:to-zinc-900 border-yellow-200 dark:border-yellow-900/30'
+                                        ? 'bg-linear-to-r from-yellow-50 to-white dark:from-yellow-900/10 dark:to-zinc-900 border-yellow-200 dark:border-yellow-900/30'
                                         : 'bg-white dark:bg-zinc-900 border-zinc-100 dark:border-zinc-800'
                                     }`}
                             >
                                 {/* Rank Container */}
-                                <div className={`flex-shrink-0 w-20 h-20 flex items-center justify-center rounded-2xl font-black text-3xl shadow-xl transition-transform group-hover:scale-110
-                                    ${index < 3 ? `bg-gradient-to-br ${rankColors[index]} text-white` : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400'}
+                                <div className={`shrink-0 w-20 h-20 flex items-center justify-center rounded-2xl font-black text-3xl shadow-xl transition-transform group-hover:scale-110
+                                    ${index < 3 ? `bg-linear-to-br ${rankColors[index]} text-white` : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400'}
                                 `}>
                                     #{index + 1}
                                 </div>
@@ -240,7 +240,7 @@ export default async function ClansPage() {
                                         <div className="h-4 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden p-1 shadow-inner">
                                             <div
                                                 className={`h-full rounded-full transition-all duration-1000 ease-out shadow-sm
-                                                    ${isCritical ? 'bg-gradient-to-r from-red-500 to-red-600' : 'bg-gradient-to-r from-primary to-primary/80'}
+                                                    ${isCritical ? 'bg-linear-to-r from-red-500 to-red-600' : 'bg-linear-to-r from-primary to-primary/80'}
                                                 `}
                                                 style={{ width: `${Math.min(budgetRatio * 100, 100)}%` }}
                                             />

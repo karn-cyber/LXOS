@@ -1,4 +1,3 @@
-import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import dbConnect from '@/lib/db';
 import Event from '@/models/Event';
@@ -12,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Calendar, MapPin, Users, DollarSign, CheckCircle, XCircle, Clock, Edit } from 'lucide-react';
 import Link from 'next/link';
 import ApprovalActions from '@/components/events/approval-actions';
+import { getDashboardSession } from '@/lib/dashboard-session';
 
 async function getEvent(id) {
     await dbConnect();
@@ -37,7 +37,7 @@ async function getEvent(id) {
 
 export default async function EventDetailPage(props) {
     const params = await props.params;
-    const session = await auth();
+    const session = await getDashboardSession();
 
     if (!session) {
         redirect('/login');

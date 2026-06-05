@@ -1,10 +1,10 @@
-import { auth } from '@/auth';
 import { redirect, notFound } from 'next/navigation';
 import dbConnect from '@/lib/db';
 import Clan from '@/models/Clan';
 import Event from '@/models/Event';
 import { hasPermission, PERMISSIONS } from '@/lib/permissions';
 import ClanDetailView from '@/components/clans/clan-detail-view';
+import { getDashboardSession } from '@/lib/dashboard-session';
 
 async function getClanWithDetails(id, userId, userRole, userClanId) {
     try {
@@ -128,7 +128,7 @@ async function getClanWithDetails(id, userId, userRole, userClanId) {
 }
 
 export default async function ClanDetailPage({ params }) {
-    const session = await auth();
+    const session = await getDashboardSession();
 
     if (!session) {
         redirect('/login');
@@ -137,13 +137,10 @@ export default async function ClanDetailPage({ params }) {
     const { id } = await params;
     const { user } = session;
 
-    // Check if user has permission to view clans
-    const canViewClans = hasPermission(user.role, PERMISSIONS.MANAGE_CLANS) ||
-        hasPermission(user.role, PERMISSIONS.VIEW_OWN_CLAN);
-
-    if (!canViewClans) {
-        redirect('/dashboard');
-    }
+    // Authorization will be validated inside `getClanWithDetails` which
+    // returns `null` for unauthorized or missing resources. Avoid an
+    // early redirect here so the page can show a 404 for unauthorized
+    // clan accesses instead of bouncing users back to `/dashboard`.
 
     const data = await getClanWithDetails(id, user.id, user.role, user.clanId);
 

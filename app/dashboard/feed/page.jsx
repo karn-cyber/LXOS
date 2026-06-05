@@ -1,9 +1,9 @@
-import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import dbConnect from '@/lib/db';
 import Achievement from '@/models/Achievement';
 import Club from '@/models/Club';
 import Clan from '@/models/Clan';
+import { getDashboardSession } from '@/lib/dashboard-session';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Trophy, Users } from 'lucide-react';
@@ -45,7 +45,7 @@ async function getAllUpdates(session) {
 }
 
 export default async function FeedPage() {
-    const session = await auth();
+    const session = await getDashboardSession();
 
     if (!session) {
         redirect('/login');

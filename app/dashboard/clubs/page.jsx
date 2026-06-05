@@ -1,4 +1,3 @@
-import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import dbConnect from '@/lib/db';
 import Club from '@/models/Club';
@@ -7,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Users, TrendingUp, TrendingDown, Plus } from 'lucide-react';
 import Link from 'next/link';
 import ClubActions from '@/components/clubs/club-actions';
+import { getDashboardSession } from '@/lib/dashboard-session';
 
 async function getClubs() {
     await dbConnect();
@@ -25,7 +25,7 @@ async function getClubs() {
 }
 
 export default async function ClubsPage() {
-    const session = await auth();
+    const session = await getDashboardSession();
 
     if (!session) {
         redirect('/login');
@@ -90,7 +90,7 @@ export default async function ClubsPage() {
 
                         return (
                             <Link key={club._id} href={`/dashboard/clubs/${club._id}`} className="group h-full">
-                                <Card className="h-full border-none shadow-xl shadow-zinc-200/40 dark:shadow-none bg-white dark:bg-zinc-900 rounded-3xl overflow-hidden hover:translate-y-[-8px] transition-all duration-300 relative">
+                                <Card className="h-full border-none shadow-xl shadow-zinc-200/40 dark:shadow-none bg-white dark:bg-zinc-900 rounded-3xl overflow-hidden hover:-translate-y-2 transition-all duration-300 relative">
                                     <div className="absolute top-4 right-4 z-10">
                                         {session.user.role === 'ADMIN' ? (
                                             <div className="flex items-center gap-2">
@@ -156,7 +156,7 @@ export default async function ClubsPage() {
                                         <div className="flex items-center justify-between pt-2">
                                             <div className="flex -space-x-2 overflow-hidden">
                                                 {[1, 2, 3].map((i) => (
-                                                    <div key={i} className="inline-block h-6 w-6 rounded-full ring-2 ring-white dark:ring-zinc-900 bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center text-[8px] font-bold text-zinc-500">
+                                                        <div key={i} className="h-6 w-6 rounded-full ring-2 ring-white dark:ring-zinc-900 bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center text-[8px] font-bold text-zinc-500">
                                                         U{i}
                                                     </div>
                                                 ))}

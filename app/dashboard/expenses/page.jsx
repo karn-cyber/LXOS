@@ -1,4 +1,3 @@
-import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import dbConnect from '@/lib/db';
 import Expense from '@/models/Expense';
@@ -9,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Plus, FileText, CheckCircle, Clock, XCircle } from 'lucide-react';
 import Link from 'next/link';
+import { getDashboardSession } from '@/lib/dashboard-session';
 
 async function getExpenses() {
     await dbConnect();
@@ -30,7 +30,7 @@ async function getExpenses() {
 }
 
 export default async function ExpensesPage() {
-    const session = await auth();
+    const session = await getDashboardSession();
 
     if (!session) {
         redirect('/login');
