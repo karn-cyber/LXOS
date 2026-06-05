@@ -11,13 +11,11 @@ import BudgetController from '@/components/admin/budget-controller';
 import PointsManager from '@/components/clans/points-manager';
 import { getDashboardSession } from '@/lib/dashboard-session';
 
-// Permanent clan identity — colors are fixed per name
 const CLAN_CONFIG = {
     Maratha: {
         dot:    'bg-red-800',
         bar:    'bg-red-700',
         text:   'text-red-800 dark:text-red-400',
-        badge:  'text-red-700 bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/20',
         tint:   'bg-red-50/60 dark:bg-red-950/10',
         border: 'border-red-100 dark:border-red-900/20',
     },
@@ -25,7 +23,6 @@ const CLAN_CONFIG = {
         dot:    'bg-yellow-500',
         bar:    'bg-yellow-400',
         text:   'text-yellow-600 dark:text-yellow-400',
-        badge:  'text-yellow-700 bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-100 dark:border-yellow-900/20',
         tint:   'bg-yellow-50/60 dark:bg-yellow-950/10',
         border: 'border-yellow-100 dark:border-yellow-900/20',
     },
@@ -33,7 +30,6 @@ const CLAN_CONFIG = {
         dot:    'bg-emerald-600',
         bar:    'bg-emerald-500',
         text:   'text-emerald-700 dark:text-emerald-400',
-        badge:  'text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/20',
         tint:   'bg-emerald-50/60 dark:bg-emerald-950/10',
         border: 'border-emerald-100 dark:border-emerald-900/20',
     },
@@ -41,7 +37,6 @@ const CLAN_CONFIG = {
         dot:    'bg-blue-600',
         bar:    'bg-blue-500',
         text:   'text-blue-700 dark:text-blue-400',
-        badge:  'text-blue-700 bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/20',
         tint:   'bg-blue-50/60 dark:bg-blue-950/10',
         border: 'border-blue-100 dark:border-blue-900/20',
     },
@@ -51,7 +46,6 @@ const DEFAULT_CONFIG = {
     dot:    'bg-zinc-400',
     bar:    'bg-zinc-400',
     text:   'text-zinc-500',
-    badge:  'text-zinc-500 bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700',
     tint:   'bg-zinc-50 dark:bg-zinc-900',
     border: 'border-zinc-100 dark:border-zinc-800',
 };
@@ -92,11 +86,11 @@ function ClansSkeleton() {
     return (
         <div className="space-y-8 animate-pulse">
             <div className="h-8 w-20 bg-zinc-100 dark:bg-zinc-800 rounded" />
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {[1,2,3,4].map(i => <div key={i} className="h-20 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-100 dark:border-zinc-800" />)}
             </div>
             <div className="space-y-4">
-                {[1,2,3,4].map(i => <div key={i} className="h-48 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-100 dark:border-zinc-800" />)}
+                {[1,2,3,4].map(i => <div key={i} className="h-44 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-100 dark:border-zinc-800" />)}
             </div>
         </div>
     );
@@ -145,7 +139,7 @@ async function ClansContent() {
                 </div>
                 {isAdmin && (
                     <Link href="/dashboard/clans/create">
-                        <Button size="sm" className="bg-primary text-white hover:bg-primary/90 rounded-xl font-medium flex items-center gap-1.5 h-9">
+                        <Button size="sm" className="bg-primary text-white hover:bg-primary/90 rounded-xl font-medium flex items-center gap-1.5 h-9 shrink-0">
                             <Plus className="h-3.5 w-3.5" />
                             New Clan
                         </Button>
@@ -153,7 +147,7 @@ async function ClansContent() {
                 )}
             </div>
 
-            {/* Summary strip */}
+            {/* Summary strip — 2 cols on mobile, 4 on desktop */}
             {clans.length > 0 && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {clans.map((clan, i) => {
@@ -194,9 +188,11 @@ async function ClansContent() {
 
                         return (
                             <div key={clan._id} className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl overflow-hidden">
-                                {/* Clan header row */}
-                                <div className={`px-5 py-4 flex items-start justify-between gap-4 ${index === 0 ? cfg.tint : ''}`}>
-                                    <div className="flex items-center gap-3 min-w-0">
+
+                                {/* Card header — stacks on mobile */}
+                                <div className={`px-4 py-4 sm:px-5 ${index === 0 ? cfg.tint : ''}`}>
+                                    <div className="flex items-start gap-3">
+                                        {/* Rank badge */}
                                         <div className="relative shrink-0">
                                             <div className={`h-10 w-10 rounded-xl flex items-center justify-center font-bold text-sm text-white ${cfg.dot}`}>
                                                 #{index + 1}
@@ -205,8 +201,10 @@ async function ClansContent() {
                                                 <Crown className="h-3.5 w-3.5 text-yellow-400 absolute -top-1.5 -right-1.5" />
                                             )}
                                         </div>
-                                        <div className="min-w-0">
-                                            <div className="flex items-center gap-2 flex-wrap">
+
+                                        {/* Name + points — full width, stacks internally */}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex flex-wrap items-center gap-2">
                                                 <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 text-base">{clan.name}</h3>
                                                 {index === 0 && (
                                                     <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-yellow-50 dark:bg-yellow-950/30 text-yellow-600 border border-yellow-100 dark:border-yellow-900/30">
@@ -215,41 +213,45 @@ async function ClansContent() {
                                                 )}
                                                 <PointDelta history={clan.pointHistory} />
                                             </div>
-                                            {clan.description && (
-                                                <p className="text-xs text-zinc-400 mt-0.5 truncate max-w-xs">{clan.description}</p>
-                                            )}
-                                        </div>
-                                    </div>
 
-                                    <div className="flex items-center gap-2 shrink-0">
-                                        <div className="text-right">
-                                            <div className={`text-2xl font-bold ${cfg.text}`}>{(clan.points || 0).toLocaleString()}</div>
-                                            <div className="text-[10px] text-zinc-400 text-right">points</div>
-                                        </div>
-                                        <div className="flex items-center gap-1 ml-2">
-                                            <Link href={`/dashboard/clans/${clan._id}`}>
-                                                <Button variant="outline" size="sm" className="h-8 text-xs rounded-lg">Details</Button>
-                                            </Link>
-                                            {isAdmin && (
-                                                <>
-                                                    <PointsManager clan={clan} isAdmin={isAdmin} />
-                                                    <BudgetController
-                                                        entityId={clan._id}
-                                                        entityType="CLAN"
-                                                        currentBudget={clan.budgetAllocated || 0}
-                                                    />
-                                                </>
+                                            {clan.description && (
+                                                <p className="text-xs text-zinc-400 mt-0.5 line-clamp-1">{clan.description}</p>
                                             )}
+
+                                            {/* Points + actions row — wraps naturally on mobile */}
+                                            <div className="flex flex-wrap items-center gap-2 mt-2">
+                                                <span className={`text-xl font-bold ${cfg.text}`}>
+                                                    {(clan.points || 0).toLocaleString()}
+                                                    <span className="text-[11px] font-normal text-zinc-400 ml-1">pts</span>
+                                                </span>
+                                                <div className="flex items-center gap-1 flex-wrap">
+                                                    <Link href={`/dashboard/clans/${clan._id}`}>
+                                                        <Button variant="outline" size="sm" className="h-7 text-xs rounded-lg px-3">Details</Button>
+                                                    </Link>
+                                                    {isAdmin && (
+                                                        <>
+                                                            <PointsManager clan={clan} isAdmin={isAdmin} />
+                                                            <BudgetController
+                                                                entityId={clan._id}
+                                                                entityType="CLAN"
+                                                                currentBudget={clan.budgetAllocated || 0}
+                                                            />
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Insights row */}
-                                <div className="px-5 pb-4 space-y-3 border-t border-zinc-50 dark:border-zinc-800">
-                                    {/* Points progress vs leader */}
+                                {/* Insights */}
+                                <div className="px-4 pb-4 sm:px-5 space-y-3 border-t border-zinc-50 dark:border-zinc-800">
+                                    {/* Points vs leader */}
                                     <div className="pt-3 space-y-1.5">
                                         <div className="flex justify-between text-[11px] text-zinc-400">
-                                            <span className="flex items-center gap-1"><Trophy className="h-3 w-3" /> Points vs leader</span>
+                                            <span className="flex items-center gap-1">
+                                                <Trophy className="h-3 w-3" /> Points vs leader
+                                            </span>
                                             <span>{pointsPct.toFixed(0)}%</span>
                                         </div>
                                         <div className="h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
@@ -259,10 +261,10 @@ async function ClansContent() {
 
                                     {/* Budget */}
                                     <div className="space-y-1.5">
-                                        <div className="flex justify-between text-[11px] text-zinc-400">
-                                            <span>Budget utilisation</span>
-                                            <span className={budgetLeft < 0 ? 'text-red-400' : ''}>
-                                                ₹{Math.max(0, budgetLeft).toLocaleString()} remaining · {budgetPct.toFixed(0)}%
+                                        <div className="flex justify-between text-[11px] text-zinc-400 gap-2">
+                                            <span className="shrink-0">Budget utilisation</span>
+                                            <span className={`text-right ${budgetLeft < 0 ? 'text-red-400' : ''}`}>
+                                                ₹{Math.max(0, budgetLeft).toLocaleString()} left · {budgetPct.toFixed(0)}%
                                             </span>
                                         </div>
                                         <div className="h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
@@ -274,33 +276,33 @@ async function ClansContent() {
                                     </div>
 
                                     {/* Stats pills */}
-                                    <div className="flex flex-wrap gap-2 pt-1">
-                                        <span className="flex items-center gap-1 text-[11px] text-zinc-500 bg-zinc-50 dark:bg-zinc-800 px-2.5 py-1 rounded-lg border border-zinc-100 dark:border-zinc-700">
+                                    <div className="flex flex-wrap gap-1.5 pt-1">
+                                        <span className="flex items-center gap-1 text-[11px] text-zinc-500 bg-zinc-50 dark:bg-zinc-800 px-2 py-1 rounded-lg border border-zinc-100 dark:border-zinc-700">
                                             <Star className="h-3 w-3 text-yellow-400" />
                                             {clan.achievementCount} achievement{clan.achievementCount !== 1 ? 's' : ''}
                                         </span>
-                                        <span className="flex items-center gap-1 text-[11px] text-zinc-500 bg-zinc-50 dark:bg-zinc-800 px-2.5 py-1 rounded-lg border border-zinc-100 dark:border-zinc-700">
+                                        <span className="flex items-center gap-1 text-[11px] text-zinc-500 bg-zinc-50 dark:bg-zinc-800 px-2 py-1 rounded-lg border border-zinc-100 dark:border-zinc-700">
                                             <Calendar className="h-3 w-3 text-zinc-400" />
                                             {clan.eventCount} event{clan.eventCount !== 1 ? 's' : ''}
                                         </span>
-                                        <span className="flex items-center gap-1 text-[11px] text-zinc-500 bg-zinc-50 dark:bg-zinc-800 px-2.5 py-1 rounded-lg border border-zinc-100 dark:border-zinc-700">
+                                        <span className="flex items-center gap-1 text-[11px] text-zinc-500 bg-zinc-50 dark:bg-zinc-800 px-2 py-1 rounded-lg border border-zinc-100 dark:border-zinc-700">
                                             <Flame className="h-3 w-3 text-orange-400" />
                                             {clan.achievementPoints} pts from achievements
                                         </span>
-                                        <span className="flex items-center gap-1 text-[11px] text-zinc-500 bg-zinc-50 dark:bg-zinc-800 px-2.5 py-1 rounded-lg border border-zinc-100 dark:border-zinc-700">
+                                        <span className="flex items-center gap-1 text-[11px] text-zinc-500 bg-zinc-50 dark:bg-zinc-800 px-2 py-1 rounded-lg border border-zinc-100 dark:border-zinc-700">
                                             ₹{(clan.budgetAllocated || 0).toLocaleString()} allocated
                                         </span>
                                     </div>
 
-                                    {/* Recent point history */}
+                                    {/* Recent activity */}
                                     {recentHistory.length > 0 && (
                                         <div className="pt-1">
                                             <p className="text-[10px] text-zinc-400 uppercase tracking-wider mb-2">Recent activity</p>
                                             <div className="space-y-1">
                                                 {recentHistory.map((h, i) => (
-                                                    <div key={i} className="flex items-center justify-between text-xs">
-                                                        <span className="text-zinc-500 truncate max-w-xs">{h.reason}</span>
-                                                        <span className={`font-medium shrink-0 ml-2 ${h.points >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                                                    <div key={i} className="flex items-start justify-between gap-2 text-xs">
+                                                        <span className="text-zinc-500 min-w-0 break-words">{h.reason}</span>
+                                                        <span className={`font-medium shrink-0 ${h.points >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
                                                             {h.points >= 0 ? '+' : ''}{h.points} pts
                                                         </span>
                                                     </div>
