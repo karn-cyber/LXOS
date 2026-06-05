@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
+import LoadingOverlay from '@/components/ui/loading-overlay';
 import dbConnect from '@/lib/db';
 import Event from '@/models/Event';
 import Club from '@/models/Club';
@@ -174,7 +175,7 @@ async function DashboardContent() {
                         {welcomeMessage}
                     </h1>
                     <p className="text-zinc-500 dark:text-zinc-400 mt-2 font-medium">
-                        Hello, <span className="text-primary font-bold">{session.sessionClaims?.name || 'User'}</span>. Here's what's happening.
+                        Hello, <span className="text-primary font-bold">{session.sessionClaims?.name || 'User'}</span>. Here is what is happening.
                     </p>
                 </div>
                 <div className="bg-white dark:bg-zinc-900 p-1 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex items-center">
@@ -308,7 +309,7 @@ async function DashboardContent() {
 
 export default function DashboardPage() {
     return (
-        <Suspense fallback={<DashboardSkeleton />}>
+        <Suspense fallback={<LoadingOverlay message="Loading dashboard..." />}>
             <DashboardContent />
         </Suspense>
     );

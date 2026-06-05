@@ -1,4 +1,6 @@
 import { redirect, notFound } from 'next/navigation';
+import { Suspense } from 'react';
+import LoadingOverlay from '@/components/ui/loading-overlay';
 import dbConnect from '@/lib/db';
 import Clan from '@/models/Clan';
 import Event from '@/models/Event';
@@ -151,13 +153,15 @@ export default async function ClanDetailPage({ params }) {
     const { clan, events } = data;
 
     return (
-        <ClanDetailView
-            clan={clan}
-            events={events}
-            user={user}
-            isAdmin={user.role === 'ADMIN'}
-            isClanLeader={user.role === 'CLAN_HEAD' && user.clanId === id}
-        />
+        <Suspense fallback={<LoadingOverlay message="Loading clan..." />}>
+            <ClanDetailView
+                clan={clan}
+                events={events}
+                user={user}
+                isAdmin={user.role === 'ADMIN'}
+                isClanLeader={user.role === 'CLAN_HEAD' && user.clanId === id}
+            />
+        </Suspense>
     );
 }
 

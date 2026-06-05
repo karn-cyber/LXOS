@@ -1,4 +1,6 @@
 import { redirect } from 'next/navigation';
+import { Suspense } from 'react';
+import LoadingOverlay from '@/components/ui/loading-overlay';
 import dbConnect from '@/lib/db';
 import Clan from '@/models/Clan';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -106,7 +108,8 @@ export default async function ClansPage() {
     }
 
     return (
-        <div className="space-y-10 animate-in fade-in duration-700">
+        <Suspense fallback={<LoadingOverlay message="Loading clans..." />}>
+            <div className="space-y-10 animate-in fade-in duration-700">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white dark:bg-zinc-900 p-8 rounded-3xl border border-zinc-100 dark:border-zinc-800 shadow-xl shadow-zinc-200/50 dark:shadow-none relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-2 h-full bg-primary"></div>
@@ -262,6 +265,7 @@ export default async function ClansPage() {
                     })}
                 </div>
             </div>
-        </div>
+            </div>
+        </Suspense>
     );
 }
