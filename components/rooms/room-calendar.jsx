@@ -150,7 +150,7 @@ export default function RoomCalendar({ rooms }) {
                         No room bookings{roomFilter !== 'ALL' ? ' for this room' : ''} yet.
                     </div>
                 ) : (
-                    <div className="calendar-container h-[700px]">
+                    <div className="calendar-container h-[600px] sm:h-[700px] overflow-x-auto">
                         <FullCalendar
                             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
                             initialView="timeGridWeek"

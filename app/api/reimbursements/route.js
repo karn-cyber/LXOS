@@ -65,6 +65,9 @@ export async function POST(request) {
 
         const body = await request.json();
         const { title, description, amount, expenseDate, category, bills, eventId, purpose, bankDetails } = body;
+        // Explicit "charge to" selection wins over the submitter's own club/clan.
+        const chargeClubId = body.clubId || clubId || null;
+        const chargeClanId = body.clubId ? null : (body.clanId || clanId || null);
 
         if (!title || !amount || !expenseDate) {
             return NextResponse.json({ error: 'Title, amount, and expense date are required' }, { status: 400 });

@@ -35,6 +35,12 @@ export default function SubmitReimbursementPage() {
     const [eventId, setEventId] = useState('');
     const [purpose, setPurpose] = useState('');
 
+    // Which budget to charge this claim to (club or clan). Value is "club:<id>"
+    // or "clan:<id>". On approval the amount is deducted from that budget.
+    const [clubs, setClubs] = useState([]);
+    const [clans, setClans] = useState([]);
+    const [chargeTo, setChargeTo] = useState('');
+
     // Bank details for the payout.
     const [accountHolderName, setAccountHolderName] = useState('');
     const [accountNumber, setAccountNumber] = useState('');
@@ -47,6 +53,14 @@ export default function SubmitReimbursementPage() {
             .then(r => r.ok ? r.json() : [])
             .then(data => setEvents(Array.isArray(data) ? data : []))
             .catch(() => setEvents([]));
+        fetch('/api/clubs')
+            .then(r => r.ok ? r.json() : [])
+            .then(data => setClubs(Array.isArray(data) ? data : []))
+            .catch(() => setClubs([]));
+        fetch('/api/clans')
+            .then(r => r.ok ? r.json() : [])
+            .then(data => setClans(Array.isArray(data) ? data : []))
+            .catch(() => setClans([]));
     }, []);
 
     const handleFilesSelected = (e) => {
@@ -166,6 +180,8 @@ export default function SubmitReimbursementPage() {
                     bills: uploadedBills,
                     eventId: eventId || null,
                     purpose: purpose.trim(),
+                    clubId: chargeTo.startsWith('club:') ? chargeTo.slice(5) : null,
+                    clanId: chargeTo.startsWith('clan:') ? chargeTo.slice(5) : null,
                     bankDetails: {
                         accountHolderName: accountHolderName.trim(),
                         accountNumber: accountNumber.trim(),
@@ -390,6 +406,31 @@ export default function SubmitReimbursementPage() {
                                 className="rounded-lg border-zinc-200 dark:border-zinc-700"
                             />
                         </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <Label htmlFor="chargeTo" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                            Charge to budget
+                        </Label>
+                        <select
+                            id="chargeTo"
+                            value={chargeTo}
+                            onChange={e => setChargeTo(e.target.value)}
+                            className="w-full h-10 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 text-sm"
+                        >
+                            <option value="">— My club/clan (default) —</option>
+                            {clubs.length > 0 && (
+                                <optgroup label="Clubs">
+                                    {clubs.map(c => <option key={c._id} value={`club:${c._id}`}>{c.name}</option>)}
+                                </optgroup>
+                            )}
+                            {clans.length > 0 && (
+                                <optgroup label="Clans">
+                                    {clans.map(c => <option key={c._id} value={`clan:${c._id}`}>{c.name}</option>)}
+                                </optgroup>
+                            )}
+                        </select>
+                        <p className="text-[11px] text-zinc-400">Once approved, the amount is deducted from this budget. Leave default to use your own club/clan.</p>
                     </div>
 
                     <div className="space-y-1.5">

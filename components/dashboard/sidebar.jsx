@@ -176,7 +176,7 @@ export default function DashboardSidebar({ children }) {
       </aside>
 
       {/* Main content */}
-      <div className="lg:pl-60">
+      <div className="lg:pl-60 min-w-0">
         {/* Mobile header */}
         <header className="lg:hidden sticky top-0 z-30 flex items-center h-12 px-4 bg-white dark:bg-zinc-900 border-b border-zinc-100 dark:border-zinc-800">
           <button
@@ -194,7 +194,7 @@ export default function DashboardSidebar({ children }) {
           <span className="ml-auto text-[10px] text-zinc-400 font-medium">{roleMeta.label}</span>
         </header>
 
-        <main className="p-5 lg:p-8 max-w-[1400px]">
+        <main className="p-4 sm:p-5 lg:p-8 max-w-[1400px] w-full min-w-0">
           {children}
         </main>
       </div>

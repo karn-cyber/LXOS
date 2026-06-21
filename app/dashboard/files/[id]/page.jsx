@@ -121,8 +121,8 @@ async function ReimbursementDetail({ id }) {
 
             {/* Status + Amount card */}
             <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl p-5">
-                <div className="flex items-start justify-between gap-4">
-                    <div>
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
                         <div className="text-3xl font-bold text-zinc-900 dark:text-zinc-100">
                             ₹{Number(data.amount).toLocaleString('en-IN')}
                         </div>
@@ -141,17 +141,17 @@ async function ReimbursementDetail({ id }) {
                             )}
                         </div>
                     </div>
-                    <div className="text-right text-xs text-zinc-400 space-y-1">
-                        <div className="flex items-center gap-1.5 justify-end">
+                    <div className="text-left sm:text-right text-xs text-zinc-400 space-y-1 shrink-0">
+                        <div className="flex items-center gap-1.5 sm:justify-end">
                             <Calendar className="h-3.5 w-3.5" />
                             Expense: {new Date(data.expenseDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </div>
-                        <div className="flex items-center gap-1.5 justify-end">
+                        <div className="flex items-center gap-1.5 sm:justify-end">
                             <FileText className="h-3.5 w-3.5" />
                             Submitted: {new Date(data.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </div>
                         {isReviewer && (
-                            <div className="flex items-center gap-1.5 justify-end">
+                            <div className="flex items-center gap-1.5 sm:justify-end">
                                 <User className="h-3.5 w-3.5" />
                                 {data.submittedBy?.name || data.submittedBy?.email}
                             </div>

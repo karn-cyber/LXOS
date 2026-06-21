@@ -76,15 +76,15 @@ export default function CalendarPage() {
     return (
         <div className="space-y-8">
             {/* Header */}
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                 <div>
-                    <h1 className="font-display text-3xl italic text-zinc-900 dark:text-zinc-100">Calendar</h1>
+                    <h1 className="font-display text-2xl sm:text-3xl italic text-zinc-900 dark:text-zinc-100">Calendar</h1>
                     <p className="text-sm text-zinc-400 mt-1">
                         All scheduled events across clubs, clans, and LX
                     </p>
                 </div>
                 {/* Legend */}
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
                     {[
                         { color: 'bg-zinc-600', label: 'Club' },
                         { color: 'bg-zinc-400', label: 'Clan' },
@@ -100,7 +100,7 @@ export default function CalendarPage() {
             </div>
 
             {/* Calendar */}
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl p-5">
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl p-3 sm:p-5 overflow-x-auto">
                 {loading ? (
                     <div className="flex items-center justify-center py-16 gap-2 text-sm text-zinc-400">
                         <Loader2 className="h-4 w-4 animate-spin" />
