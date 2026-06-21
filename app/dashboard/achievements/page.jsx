@@ -9,7 +9,13 @@ import { getDashboardSession } from '@/lib/dashboard-session';
 
 async function getAchievements(session) {
     await dbConnect();
-    const filter = session?.user?.role === 'ADMIN' ? {} : { status: 'APPROVED' };
+    // Achievements section shows real achievements only — general club updates
+    // / blog posts (kind: 'UPDATE') live in the activity feed, not here.
+    // Legacy records without a `kind` are treated as achievements.
+    const filter = { kind: { $ne: 'UPDATE' } };
+    if (session?.user?.role !== 'ADMIN') {
+        filter.status = 'APPROVED';
+    }
     const items = await Achievement.find(filter)
         .sort({ achievedDate: -1 })
         .populate('clubId', 'name')

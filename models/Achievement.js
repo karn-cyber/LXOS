@@ -44,6 +44,15 @@ const AchievementSchema = new mongoose.Schema({
         enum: ['Academic', 'Sports', 'Cultural', 'Technical', 'Social', 'Other'],
         default: 'Other',
     },
+    // Discriminates a real achievement from a general club update / blog post.
+    // Both appear in the activity feed, but only ACHIEVEMENT shows in the
+    // Achievements section. Defaults to ACHIEVEMENT so legacy records are kept
+    // in the Achievements section unless explicitly marked as an update.
+    kind: {
+        type: String,
+        enum: ['ACHIEVEMENT', 'UPDATE'],
+        default: 'ACHIEVEMENT',
+    },
     participants: [{
         type: String,
     }],

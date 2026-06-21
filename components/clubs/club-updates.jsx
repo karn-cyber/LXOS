@@ -95,6 +95,7 @@ export default function ClubUpdates({ clubId, updates, canPost }) {
                 clubId,
                 date: new Date().toISOString(),
                 category: 'Other', // General update
+                kind: 'UPDATE', // Goes to the feed, but NOT the Achievements section
                 images: imageUrl ? [imageUrl] : [],
             };
 

@@ -75,6 +75,7 @@ export async function POST(request) {
             pointsAwarded,
             participants,
             images,
+            kind,
         } = body;
 
         const effectiveDate = date || achievedDate;
@@ -82,6 +83,10 @@ export async function POST(request) {
         if (!title || !description || !category || !effectiveDate) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
+
+        // General club updates / blog posts are tagged UPDATE so they stay out
+        // of the Achievements section (they still appear in the activity feed).
+        const effectiveKind = kind === 'UPDATE' ? 'UPDATE' : 'ACHIEVEMENT';
 
         const requiresAdminApproval = session.user.role !== 'ADMIN';
         const initialStatus = requiresAdminApproval ? 'PENDING' : 'APPROVED';
@@ -97,6 +102,7 @@ export async function POST(request) {
             points: pointsAwarded || 0,
             participants: participants || [],
             images: images || [],
+            kind: effectiveKind,
             createdBy: session.user.id,
             semester: body.semester || 'Spring 2026',
             status: initialStatus,
@@ -104,8 +110,9 @@ export async function POST(request) {
             approvedAt: initialStatus === 'APPROVED' ? new Date() : null,
         });
 
-        // Update clan points only when already approved (admin-created)
-        if (!requiresAdminApproval && clanId && pointsAwarded > 0) {
+        // Update clan points only when already approved (admin-created) and
+        // only for real achievements — general updates never award points.
+        if (effectiveKind === 'ACHIEVEMENT' && !requiresAdminApproval && clanId && pointsAwarded > 0) {
             await Clan.findByIdAndUpdate(clanId, {
                 $inc: { points: pointsAwarded },
             });
