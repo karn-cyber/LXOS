@@ -16,7 +16,14 @@ export async function GET(request) {
 
         await dbConnect();
 
-        const events = await Event.find({ status: { $in: ['APPROVED', 'PENDING'] } })
+        // Approved events are live for everyone. Pending events are only visible
+        // to their creator and to reviewers (ADMIN/LX) until approved.
+        const isReviewer = ['ADMIN', 'LX_TEAM'].includes(session.user.role);
+        const calendarFilter = isReviewer
+            ? { status: { $in: ['APPROVED', 'PENDING'] } }
+            : { $or: [{ status: 'APPROVED' }, { status: 'PENDING', createdBy: session.user.id }] };
+
+        const events = await Event.find(calendarFilter)
             .populate('clubId', 'name')
             .populate('clanId', 'name')
             .populate('roomId', 'name')

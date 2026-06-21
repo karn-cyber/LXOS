@@ -14,9 +14,10 @@ const UserSchema = new mongoose.Schema({
         lowercase: true,
         trim: true,
     },
+    // Auth is handled by Clerk; password is only used by the dormant next-auth
+    // credentials flow, so it is optional. Users are auto-provisioned on login.
     password: {
         type: String,
-        required: [true, 'Please provide a password'],
         minlength: 6,
         select: false, // Don't return password by default
     },
@@ -25,19 +26,17 @@ const UserSchema = new mongoose.Schema({
         enum: ['ADMIN', 'LX_TEAM', 'CLUB_HEAD', 'CLAN_HEAD', 'FINANCE', 'GUEST'],
         default: 'CLUB_HEAD',
     },
+    // Optional — a club/clan head may be provisioned before being linked to a
+    // specific club/clan; admins can assign it later.
     clubId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Club',
-        required: function () {
-            return this.role === 'CLUB_HEAD';
-        },
+        default: null,
     },
     clanId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Clan',
-        required: function () {
-            return this.role === 'CLAN_HEAD';
-        },
+        default: null,
     },
     avatar: {
         type: String,
