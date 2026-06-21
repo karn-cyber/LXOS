@@ -364,13 +364,19 @@ export default function SubmitReimbursementPage() {
                                 id="eventId"
                                 value={eventId}
                                 onChange={e => setEventId(e.target.value)}
-                                className="w-full h-10 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 text-sm"
+                                disabled={events.length === 0}
+                                className="w-full h-10 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 text-sm disabled:opacity-60"
                             >
                                 <option value="">— Not for a specific event —</option>
                                 {events.map(ev => (
                                     <option key={ev._id} value={ev._id}>{ev.title}</option>
                                 ))}
                             </select>
+                            {events.length === 0 && (
+                                <p className="text-[11px] text-zinc-400">
+                                    No events created yet — use Purpose / Activity instead.
+                                </p>
+                            )}
                         </div>
                         <div className="space-y-1.5">
                             <Label htmlFor="purpose" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
@@ -431,7 +437,7 @@ export default function SubmitReimbursementPage() {
                                 inputMode="numeric"
                                 placeholder="000000000000"
                                 value={accountNumber}
-                                onChange={e => setAccountNumber(e.target.value.replace(/[^0-9]/g, ''))}
+                                onChange={e => setAccountNumber(e.target.value)}
                                 className="rounded-lg border-zinc-200 dark:border-zinc-700"
                                 required
                             />
