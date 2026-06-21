@@ -3,6 +3,9 @@ import { Suspense } from 'react';
 import { getDashboardSession } from '@/lib/dashboard-session';
 import dbConnect from '@/lib/db';
 import Reimbursement from '@/models/Reimbursement';
+// Referenced by populate() — keep their schemas registered on the lambda.
+import Event from '@/models/Event';
+import User from '@/models/User';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';

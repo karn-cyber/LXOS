@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import dbConnect from '@/lib/db';
 import Reimbursement from '@/models/Reimbursement';
+// Referenced by populate('eventId'/'processedBy') — register their schemas.
+import Event from '@/models/Event';
+import User from '@/models/User';
 import { getDashboardSession } from '@/lib/dashboard-session';
 
 const REVIEWER_ROLES = ['ADMIN', 'FINANCE', 'LX_TEAM'];

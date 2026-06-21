@@ -3,6 +3,9 @@ import { auth } from '@clerk/nextjs/server';
 import dbConnect from '@/lib/db';
 import Reimbursement from '@/models/Reimbursement';
 import Approval from '@/models/Approval';
+// Referenced by populate('eventId') — register its schema on the lambda.
+import Event from '@/models/Event';
+import User from '@/models/User';
 import { getDashboardSession } from '@/lib/dashboard-session';
 
 const REVIEWER_ROLES = ['ADMIN', 'FINANCE', 'LX_TEAM'];

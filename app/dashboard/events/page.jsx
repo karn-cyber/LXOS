@@ -2,6 +2,12 @@ import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import dbConnect from '@/lib/db';
 import Event from '@/models/Event';
+// These models are referenced by populate() below — importing them ensures
+// their schemas are registered on the serverless lambda (avoids MissingSchemaError).
+import Club from '@/models/Club';
+import Clan from '@/models/Clan';
+import Room from '@/models/Room';
+import User from '@/models/User';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
