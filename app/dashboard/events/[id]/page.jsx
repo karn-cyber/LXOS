@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Calendar, MapPin, Users, DollarSign, CheckCircle, XCircle, Clock, Edit } from 'lucide-react';
 import Link from 'next/link';
 import ApprovalActions from '@/components/events/approval-actions';
+import DeleteEventButton from '@/components/events/delete-event-button';
 import { getDashboardSession } from '@/lib/dashboard-session';
 
 async function getEvent(id) {
@@ -101,6 +102,7 @@ export default async function EventDetailPage(props) {
                                     Edit
                                 </Button>
                             </Link>
+                            <DeleteEventButton eventId={event._id} eventTitle={event.title} />
                         </div>
                     )}
                 </div>

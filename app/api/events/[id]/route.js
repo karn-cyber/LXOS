@@ -184,17 +184,32 @@ export async function DELETE(request, { params }) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        if (session.user.role !== 'ADMIN') {
-            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-        }
-
         await dbConnect();
         const { id } = await params;
 
-        const event = await Event.findByIdAndDelete(id);
+        const event = await Event.findById(id);
 
         if (!event) {
             return NextResponse.json({ error: 'Event not found' }, { status: 404 });
+        }
+
+        // The creator of the event, ADMIN, or LX_TEAM may delete it.
+        const canDelete = session.user.role === 'ADMIN' ||
+            session.user.role === 'LX_TEAM' ||
+            event.createdBy?.toString() === session.user.id;
+
+        if (!canDelete) {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+
+        await Event.findByIdAndDelete(id);
+
+        // Remove any linked approval request so it doesn't dangle in the queue.
+        try {
+            const { default: Approval } = await import('@/models/Approval');
+            await Approval.deleteMany({ entityId: id, entityModel: 'Event' });
+        } catch (cleanupErr) {
+            console.warn('Could not clean up approval for deleted event:', cleanupErr.message);
         }
 
         return NextResponse.json({ message: 'Event deleted successfully' });
