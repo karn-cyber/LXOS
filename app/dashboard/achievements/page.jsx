@@ -4,8 +4,9 @@ import dbConnect from '@/lib/db';
 import Achievement from '@/models/Achievement';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Plus, Trophy, Star } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { getDashboardSession } from '@/lib/dashboard-session';
+import AchievementsFeed from '@/components/achievements/achievements-feed';
 
 async function getAchievements(session) {
     await dbConnect();
@@ -20,6 +21,7 @@ async function getAchievements(session) {
         .sort({ achievedDate: -1 })
         .populate('clubId', 'name')
         .populate('clanId', 'name')
+        .populate('createdBy', 'name')
         .lean();
     return JSON.parse(JSON.stringify(items));
 }
@@ -83,50 +85,7 @@ async function AchievementsContent() {
                     )}
                 </div>
             ) : (
-                <div className="grid gap-4 md:grid-cols-2">
-                    {items.map(a => {
-                        const catStyle = CATEGORY_COLORS[a.category] || CATEGORY_COLORS.Other;
-                        return (
-                            <div key={a._id} className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl p-5">
-                                <div className="flex items-start justify-between gap-3">
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex flex-wrap items-center gap-2 mb-2">
-                                            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${catStyle}`}>
-                                                {a.category}
-                                            </span>
-                                            {a.status === 'PENDING' && (
-                                                <span className="text-[10px] font-medium text-yellow-600 bg-yellow-50 dark:bg-yellow-950/30 px-2 py-0.5 rounded-full">
-                                                    pending
-                                                </span>
-                                            )}
-                                            {a.points > 0 && (
-                                                <span className="flex items-center gap-1 text-[10px] font-medium text-zinc-500">
-                                                    <Star className="h-3 w-3 text-yellow-400 fill-yellow-400" />
-                                                    {a.points} pts
-                                                </span>
-                                            )}
-                                        </div>
-                                        <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 leading-snug">{a.title}</h3>
-                                        <p className="text-xs text-zinc-400 mt-1 line-clamp-2">{a.description}</p>
-                                    </div>
-                                    <Trophy className="h-5 w-5 text-yellow-400 shrink-0 mt-0.5" />
-                                </div>
-
-                                <div className="mt-3 pt-3 border-t border-zinc-50 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-2">
-                                    <div className="text-[11px] text-zinc-400">
-                                        {a.clubId?.name || a.clanId?.name || '—'}
-                                        {a.achievedDate && ` · ${new Date(a.achievedDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`}
-                                    </div>
-                                    {canEdit && (
-                                        <Link href={`/dashboard/achievements/${a._id}/edit`} className="text-xs text-zinc-400 hover:text-primary transition-colors">
-                                            Edit →
-                                        </Link>
-                                    )}
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
+                <AchievementsFeed items={items} />
             )}
         </div>
     );

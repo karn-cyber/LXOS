@@ -6,19 +6,23 @@ import { Button } from '@/components/ui/button';
 import { Check, X, Loader2 } from 'lucide-react';
 
 /**
- * Inline Approve / Reject for event (and room-booking) approvals, so reviewers
- * can act directly from the approvals list without opening each one.
+ * Inline Approve / Reject for event, room-booking and achievement approvals, so
+ * reviewers can act directly from the list (or detail page) without extra steps.
+ * `kind` selects the endpoint: 'achievement' -> /api/achievements/[id]/approve,
+ * anything else -> /api/events/[id]/approve. Both share the {action} contract.
  */
-export default function ApprovalQuickActions({ entityId }) {
+export default function ApprovalQuickActions({ entityId, kind = 'event', onDone }) {
     const router = useRouter();
     const [loading, setLoading] = useState(null); // 'approve' | 'reject'
     const [rejecting, setRejecting] = useState(false);
     const [reason, setReason] = useState('');
 
+    const base = kind === 'achievement' ? 'achievements' : 'events';
+
     const act = async (action, rejectionReason) => {
         setLoading(action);
         try {
-            const res = await fetch(`/api/events/${entityId}/approve`, {
+            const res = await fetch(`/api/${base}/${entityId}/approve`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action, rejectionReason }),
@@ -27,6 +31,7 @@ export default function ApprovalQuickActions({ entityId }) {
                 const err = await res.json().catch(() => ({}));
                 throw new Error(err.error || 'Failed');
             }
+            if (onDone) onDone();
             router.refresh();
         } catch (e) {
             alert(e.message || 'Action failed');

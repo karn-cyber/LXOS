@@ -12,8 +12,8 @@ export async function POST(request, { params }) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        if (session.user.role !== 'ADMIN') {
-            return NextResponse.json({ error: 'Only admins can approve updates' }, { status: 403 });
+        if (session.user.role !== 'ADMIN' && session.user.role !== 'LX_TEAM') {
+            return NextResponse.json({ error: 'Only Admin / LX can approve' }, { status: 403 });
         }
 
         await dbConnect();

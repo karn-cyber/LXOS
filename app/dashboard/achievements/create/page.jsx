@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, ImageIcon, Loader2, X } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 
@@ -28,8 +28,37 @@ export default function CreateAchievementPage() {
         clanId: '',
         pointsAwarded: 0,
         participants: [],
+        images: [],
     });
     const [newParticipant, setNewParticipant] = useState('');
+    const [uploading, setUploading] = useState(false);
+
+    const handleImages = async (e) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
+        setUploading(true);
+        try {
+            const urls = [];
+            for (const file of files) {
+                const fd = new FormData();
+                fd.append('file', file);
+                const res = await fetch('/api/upload', { method: 'POST', body: fd });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Upload failed');
+                urls.push(data.url);
+            }
+            setFormData(prev => ({ ...prev, images: [...prev.images, ...urls] }));
+        } catch (err) {
+            toast.error('Image upload failed', { description: err.message });
+        } finally {
+            setUploading(false);
+            e.target.value = '';
+        }
+    };
+
+    const removeImage = (index) => {
+        setFormData(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== index) }));
+    };
 
     useEffect(() => {
         fetchData();
@@ -231,6 +260,36 @@ export default function CreateAchievementPage() {
                                 </div>
                             </CardContent>
                         </Card>
+
+                        {/* Photos */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Photos</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                                {formData.images.length > 0 && (
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                        {formData.images.map((url, i) => (
+                                            <div key={i} className="relative rounded-lg overflow-hidden border border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900">
+                                                <img src={url} alt={`Photo ${i + 1}`} className="w-full h-28 object-cover" />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeImage(i)}
+                                                    className="absolute top-1.5 right-1.5 h-5 w-5 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center"
+                                                >
+                                                    <X className="h-3 w-3" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-zinc-200 dark:border-zinc-700 rounded-lg p-4 cursor-pointer hover:border-primary/50 transition-colors text-sm text-zinc-500">
+                                    <input type="file" accept="image/*" multiple className="hidden" onChange={handleImages} disabled={uploading} />
+                                    {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
+                                    {uploading ? 'Uploading…' : 'Add photos'}
+                                </label>
+                            </CardContent>
+                        </Card>
                     </div>
 
                     {/* Sidebar */}
@@ -291,7 +350,7 @@ export default function CreateAchievementPage() {
                         </Card>
 
                         <div className="flex gap-3">
-                            <Button type="submit" disabled={loading} className="flex-1">
+                            <Button type="submit" disabled={loading || uploading} className="flex-1">
                                 {loading ? 'Creating...' : 'Create Achievement'}
                             </Button>
                             <Link href="/dashboard/achievements">

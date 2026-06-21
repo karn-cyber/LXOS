@@ -36,14 +36,16 @@ function getReviewLink(approval) {
     if (['Event', 'EVENT', 'BOOKING'].includes(type)) return `/dashboard/events/${approval.entity._id}`;
     if (['Reimbursement'].includes(type)) return `/dashboard/files/${approval.entity._id}`;
     if (['Expense', 'EXPENSE'].includes(type)) return `/dashboard/files/${approval.entity._id}`;
-    if (['Achievement', 'ACHIEVEMENT'].includes(type)) return `/dashboard/achievements/${approval.entity._id}/edit`;
+    if (['Achievement', 'ACHIEVEMENT'].includes(type)) return `/dashboard/achievements/${approval.entity._id}`;
     return null;
 }
 
-// Event/booking approvals can be actioned inline; others open their detail page.
-function isEventApproval(approval) {
+// Which approvals can be actioned inline, and which endpoint they use.
+function quickActionKind(approval) {
     const type = approval.entityModel || approval.type;
-    return ['Event', 'EVENT', 'BOOKING'].includes(type);
+    if (['Event', 'EVENT', 'BOOKING'].includes(type)) return 'event';
+    if (['Achievement', 'ACHIEVEMENT'].includes(type)) return 'achievement';
+    return null;
 }
 
 const PRIORITY_DOT = {
@@ -73,7 +75,7 @@ async function ApprovalsContent() {
 
     const filtered = approvals.filter(a => {
         if (session.user.role === 'ADMIN') return true;
-        if (session.user.role === 'LX_TEAM') return a.type === 'EVENT' || a.type === 'BOOKING';
+        if (session.user.role === 'LX_TEAM') return ['EVENT', 'BOOKING', 'ACHIEVEMENT'].includes(a.type);
         if (session.user.role === 'FINANCE') return a.type === 'EXPENSE';
         return false;
     });
@@ -103,6 +105,7 @@ async function ApprovalsContent() {
                 <div className="border border-zinc-100 dark:border-zinc-800 rounded-xl overflow-hidden bg-white dark:bg-zinc-900 divide-y divide-zinc-50 dark:divide-zinc-800">
                     {filtered.map((approval) => {
                         const reviewLink = getReviewLink(approval);
+                        const qaKind = quickActionKind(approval);
                         const isHighPriority = ['HIGH', 'URGENT'].includes(approval.priority);
                         return (
                             <div
@@ -139,8 +142,8 @@ async function ApprovalsContent() {
                                             </Button>
                                         </Link>
                                     )}
-                                    {isEventApproval(approval) && approval.entity?._id ? (
-                                        <ApprovalQuickActions entityId={approval.entity._id} />
+                                    {qaKind && approval.entity?._id ? (
+                                        <ApprovalQuickActions entityId={approval.entity._id} kind={qaKind} />
                                     ) : (!reviewLink && (
                                         <Button size="sm" variant="outline" disabled className="rounded-lg h-8 text-xs">
                                             No link
