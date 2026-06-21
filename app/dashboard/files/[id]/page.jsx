@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ImageIcon, Calendar, User, FileText, Landmark, CalendarDays, CheckCircle2, Clock, Banknote, XCircle } from 'lucide-react';
 import ReimbursementReview from '@/components/reimbursements/reimbursement-review';
+import BillViewer from '@/components/reimbursements/bill-viewer';
 
 const REVIEWER_ROLES = ['ADMIN', 'FINANCE', 'LX_TEAM'];
 
@@ -225,28 +226,7 @@ async function ReimbursementDetail({ id }) {
                         <ImageIcon className="h-4 w-4 text-zinc-400" />
                         Bills ({data.bills.length})
                     </h2>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        {data.bills.map((bill, i) => (
-                            <a key={i} href={bill.path} target="_blank" rel="noopener noreferrer">
-                                <div className="border border-zinc-100 dark:border-zinc-800 rounded-xl overflow-hidden bg-zinc-50 dark:bg-zinc-900 hover:border-zinc-300 transition-colors">
-                                    {bill.mimeType?.startsWith('image/') ? (
-                                        <img
-                                            src={bill.path}
-                                            alt={bill.originalName}
-                                            className="w-full h-36 object-cover"
-                                        />
-                                    ) : (
-                                        <div className="w-full h-36 flex items-center justify-center">
-                                            <FileText className="h-8 w-8 text-zinc-300" />
-                                        </div>
-                                    )}
-                                    <div className="p-2">
-                                        <p className="text-[10px] text-zinc-500 truncate">{bill.originalName}</p>
-                                    </div>
-                                </div>
-                            </a>
-                        ))}
-                    </div>
+                    <BillViewer bills={data.bills} />
                 </div>
             )}
 

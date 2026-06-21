@@ -11,6 +11,7 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useState, useEffect } from 'react';
 import { hasPermission, PERMISSIONS } from '@/lib/permissions';
+import RouteProgress from '@/components/ui/route-progress';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, permission: null },
@@ -88,6 +89,7 @@ export default function DashboardSidebar({ children }) {
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+      <RouteProgress />
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div

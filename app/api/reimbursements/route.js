@@ -43,6 +43,7 @@ export async function GET() {
 
         const filter = REVIEWER_ROLES.includes(role) ? {} : { submittedBy: userId };
         const items = await Reimbursement.find(filter)
+            .select('-bills.path') // drop heavy base64 bill data from the list payload
             .sort({ createdAt: -1 })
             .populate('submittedBy', 'name email')
             .populate('reviewedBy', 'name')

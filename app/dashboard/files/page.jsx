@@ -41,6 +41,7 @@ async function ReimbursementsContent() {
     const filter = isReviewer ? {} : { submittedBy: session.user.id };
 
     const items = await Reimbursement.find(filter)
+        .select('-bills.path') // drop heavy base64 bill data — list only needs the count
         .sort({ createdAt: -1 })
         .populate('submittedBy', 'name email')
         .populate('reviewedBy', 'name')
