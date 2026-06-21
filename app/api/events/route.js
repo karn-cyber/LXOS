@@ -4,7 +4,7 @@ import Event from '@/models/Event';
 import Club from '@/models/Club';
 import Clan from '@/models/Clan';
 import Room from '@/models/Room';
-import { auth } from '@/auth';
+import { auth } from '@/lib/api-auth';
 
 export async function GET(request) {
     try {

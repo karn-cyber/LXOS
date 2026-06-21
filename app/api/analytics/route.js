@@ -5,7 +5,7 @@ import Club from '@/models/Club';
 import Clan from '@/models/Clan';
 import Expense from '@/models/Expense';
 import Achievement from '@/models/Achievement';
-import { auth } from '@/auth';
+import { auth } from '@/lib/api-auth';
 
 export async function GET(request) {
     try {

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Achievement from '@/models/Achievement';
 import Clan from '@/models/Clan';
-import { auth } from '@/auth';
+import { auth } from '@/lib/api-auth';
 
 export async function GET(request) {
     try {

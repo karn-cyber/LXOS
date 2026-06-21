@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { auth } from '@/lib/api-auth';
 import dbConnect from '@/lib/db';
 import Clan from '@/models/Clan';
 
@@ -17,18 +17,31 @@ export async function PATCH(request, { params }) {
         const body = await request.json();
         const { points, reason } = body;
 
-        if (typeof points !== 'number') {
+        if (typeof points !== 'number' || Number.isNaN(points)) {
             return NextResponse.json({ error: 'Points must be a number' }, { status: 400 });
         }
 
+        if (points < 0) {
+            return NextResponse.json({ error: 'Points cannot be negative' }, { status: 400 });
+        }
+
+        // Read current points so we can record an accurate history entry.
+        const existing = await Clan.findById(id).select('points');
+        if (!existing) {
+            return NextResponse.json({ error: 'Clan not found' }, { status: 404 });
+        }
+
+        const previousPoints = existing.points || 0;
+        const delta = points - previousPoints;
+
         const clan = await Clan.findByIdAndUpdate(
             id,
-            { 
+            {
                 $set: { points },
                 $push: {
                     pointHistory: {
-                        points,
-                        previousPoints: 0, // Will be updated in a more complex implementation
+                        points: delta,
+                        previousPoints,
                         reason: reason || 'Manual adjustment by admin',
                         updatedBy: session.user.id,
                         date: new Date()

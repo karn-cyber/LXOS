@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Achievement from '@/models/Achievement';
-import { auth } from '@/auth';
+import { auth } from '@/lib/api-auth';
 import { hasPermission, PERMISSIONS } from '@/lib/permissions';
 
 export async function GET(request, { params }) {

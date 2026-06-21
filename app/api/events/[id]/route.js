@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Event from '@/models/Event';
 import Room from '@/models/Room';
-import { auth } from '@/auth';
+import { auth } from '@/lib/api-auth';
 
 export async function GET(request, { params }) {
     try {

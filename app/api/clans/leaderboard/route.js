@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { auth } from '@/lib/api-auth';
 import dbConnect from '@/lib/db';
 import Clan from '@/models/Clan';
 

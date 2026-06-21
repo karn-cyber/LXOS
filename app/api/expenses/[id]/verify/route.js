@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Expense from '@/models/Expense';
 import Event from '@/models/Event';
-import { auth } from '@/auth';
+import { auth } from '@/lib/api-auth';
 
 export async function POST(request, { params }) {
     try {

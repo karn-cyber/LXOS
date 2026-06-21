@@ -3,9 +3,11 @@ import { auth } from '@clerk/nextjs/server';
 
 export const runtime = 'nodejs';
 
+const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
+
 export async function POST(request) {
     try {
-        // Auth check
+        // Auth check — app uses Clerk; any signed-in user may upload.
         let userId = null;
         try {
             const session = await auth();
@@ -18,7 +20,6 @@ export async function POST(request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Parse form data
         let formData;
         try {
             formData = await request.formData();
@@ -32,11 +33,11 @@ export async function POST(request) {
             return NextResponse.json({ error: 'No file provided' }, { status: 400 });
         }
 
-        // 10 MB limit
-        if (file.size > 10 * 1024 * 1024) {
+        if (file.size > MAX_SIZE) {
             return NextResponse.json({ error: 'File too large. Maximum size is 10 MB.' }, { status: 400 });
         }
 
+        // Files are stored in MongoDB as inline data URLs (filePath field).
         const bytes = await file.arrayBuffer();
         const base64 = Buffer.from(bytes).toString('base64');
         const mimeType = file.type || 'application/octet-stream';
