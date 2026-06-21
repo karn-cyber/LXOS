@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,7 +30,24 @@ export default function SubmitReimbursementPage() {
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
 
+    // What the claim is for (used to group claims in the reimbursement table).
+    const [events, setEvents] = useState([]);
+    const [eventId, setEventId] = useState('');
+    const [purpose, setPurpose] = useState('');
+
+    // Bank details for the payout.
+    const [accountHolderName, setAccountHolderName] = useState('');
+    const [accountNumber, setAccountNumber] = useState('');
+    const [ifsc, setIfsc] = useState('');
+
     const today = new Date().toISOString().split('T')[0];
+
+    useEffect(() => {
+        fetch('/api/events')
+            .then(r => r.ok ? r.json() : [])
+            .then(data => setEvents(Array.isArray(data) ? data : []))
+            .catch(() => setEvents([]));
+    }, []);
 
     const handleFilesSelected = (e) => {
         const selected = Array.from(e.target.files || []);
@@ -94,6 +111,9 @@ export default function SubmitReimbursementPage() {
         if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) return setError('Please enter a valid amount.');
         if (!expenseDate) return setError('Please select the expense date.');
         if (bills.length === 0) return setError('Please attach at least one bill image.');
+        if (!accountHolderName.trim()) return setError('Please enter the account holder name.');
+        if (!accountNumber.trim()) return setError('Please enter the account number.');
+        if (!ifsc.trim()) return setError('Please enter the IFSC code.');
 
         setSubmitting(true);
 
@@ -144,6 +164,13 @@ export default function SubmitReimbursementPage() {
                     expenseDate,
                     category,
                     bills: uploadedBills,
+                    eventId: eventId || null,
+                    purpose: purpose.trim(),
+                    bankDetails: {
+                        accountHolderName: accountHolderName.trim(),
+                        accountNumber: accountNumber.trim(),
+                        ifsc: ifsc.trim().toUpperCase(),
+                    },
                 }),
             });
 
@@ -328,17 +355,101 @@ export default function SubmitReimbursementPage() {
                         </div>
                     </div>
 
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                            <Label htmlFor="eventId" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                                Related Event
+                            </Label>
+                            <select
+                                id="eventId"
+                                value={eventId}
+                                onChange={e => setEventId(e.target.value)}
+                                className="w-full h-10 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 text-sm"
+                            >
+                                <option value="">— Not for a specific event —</option>
+                                {events.map(ev => (
+                                    <option key={ev._id} value={ev._id}>{ev.title}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="purpose" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                                Or Purpose / Activity
+                            </Label>
+                            <Input
+                                id="purpose"
+                                placeholder="e.g. Spring Fest, Clan Sports Day"
+                                value={purpose}
+                                onChange={e => setPurpose(e.target.value)}
+                                className="rounded-lg border-zinc-200 dark:border-zinc-700"
+                            />
+                        </div>
+                    </div>
+
                     <div className="space-y-1.5">
                         <Label htmlFor="description" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
                             Additional Details
                         </Label>
                         <Textarea
                             id="description"
-                            placeholder="Any context that will help the reviewer — event name, number of people, reason, etc."
+                            placeholder="Any context that will help the reviewer — number of people, reason, etc."
                             value={description}
                             onChange={e => setDescription(e.target.value)}
                             className="rounded-lg border-zinc-200 dark:border-zinc-700 resize-none h-24"
                         />
+                    </div>
+                </div>
+
+                {/* Bank details for payout */}
+                <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl p-5 space-y-5">
+                    <div>
+                        <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Bank Account for Payout</h2>
+                        <p className="text-xs text-zinc-400 mt-0.5">Where the reimbursement will be transferred once processed.</p>
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <Label htmlFor="accountHolderName" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                            Account Holder Name <span className="text-red-400">*</span>
+                        </Label>
+                        <Input
+                            id="accountHolderName"
+                            placeholder="As printed on the bank account"
+                            value={accountHolderName}
+                            onChange={e => setAccountHolderName(e.target.value)}
+                            className="rounded-lg border-zinc-200 dark:border-zinc-700"
+                            required
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                            <Label htmlFor="accountNumber" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                                Account Number <span className="text-red-400">*</span>
+                            </Label>
+                            <Input
+                                id="accountNumber"
+                                inputMode="numeric"
+                                placeholder="000000000000"
+                                value={accountNumber}
+                                onChange={e => setAccountNumber(e.target.value.replace(/[^0-9]/g, ''))}
+                                className="rounded-lg border-zinc-200 dark:border-zinc-700"
+                                required
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="ifsc" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                                IFSC Code <span className="text-red-400">*</span>
+                            </Label>
+                            <Input
+                                id="ifsc"
+                                placeholder="e.g. HDFC0001234"
+                                value={ifsc}
+                                onChange={e => setIfsc(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+                                maxLength={11}
+                                className="rounded-lg border-zinc-200 dark:border-zinc-700 uppercase"
+                                required
+                            />
+                        </div>
                     </div>
                 </div>
 

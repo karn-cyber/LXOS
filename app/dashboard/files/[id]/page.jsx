@@ -5,15 +5,16 @@ import dbConnect from '@/lib/db';
 import Reimbursement from '@/models/Reimbursement';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ImageIcon, Calendar, Tag, User, FileText } from 'lucide-react';
+import { ArrowLeft, ImageIcon, Calendar, User, FileText, Landmark, CalendarDays } from 'lucide-react';
 import ReimbursementReview from '@/components/reimbursements/reimbursement-review';
 
 const REVIEWER_ROLES = ['ADMIN', 'FINANCE', 'LX_TEAM'];
 
 const STATUS_STYLES = {
-    APPROVED: 'text-green-600 bg-green-50 dark:bg-green-950/30 border border-green-100 dark:border-green-900/20',
-    PENDING:  'text-yellow-600 bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-100 dark:border-yellow-900/20',
-    REJECTED: 'text-red-500 bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/20',
+    APPROVED:  'text-green-600 bg-green-50 dark:bg-green-950/30 border border-green-100 dark:border-green-900/20',
+    PENDING:   'text-yellow-600 bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-100 dark:border-yellow-900/20',
+    REJECTED:  'text-red-500 bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/20',
+    PROCESSED: 'text-blue-600 bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/20',
 };
 
 function DetailSkeleton() {
@@ -43,6 +44,9 @@ async function ReimbursementDetail({ id }) {
     if (!isOwner && !isReviewer) redirect('/dashboard');
 
     const data = JSON.parse(JSON.stringify(item));
+    const groupLabel = data.eventId?.title || data.purpose || '';
+    const bank = data.bankDetails || {};
+    const hasBank = bank.accountHolderName || bank.accountNumber || bank.ifsc;
 
     return (
         <div className="max-w-2xl mx-auto space-y-8">
@@ -73,6 +77,12 @@ async function ReimbursementDetail({ id }) {
                             <span className="text-[11px] text-zinc-400 bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 px-2 py-0.5 rounded-full">
                                 {data.category}
                             </span>
+                            {groupLabel && (
+                                <span className="text-[11px] text-zinc-500 bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                    <CalendarDays className="h-3 w-3" />
+                                    {groupLabel}
+                                </span>
+                            )}
                         </div>
                     </div>
                     <div className="text-right text-xs text-zinc-400 space-y-1">
@@ -115,10 +125,39 @@ async function ReimbursementDetail({ id }) {
 
                 {data.reviewedBy && data.reviewedAt && (
                     <p className="text-[11px] text-zinc-400 mt-3">
-                        {data.status === 'APPROVED' ? 'Approved' : 'Reviewed'} by {data.reviewedBy.name} on {new Date(data.reviewedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        {data.status === 'REJECTED' ? 'Rejected' : 'Approved'} by {data.reviewedBy.name} on {new Date(data.reviewedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </p>
+                )}
+                {data.processedBy && data.processedAt && (
+                    <p className="text-[11px] text-blue-500 mt-1">
+                        Marked processed by {data.processedBy.name} on {new Date(data.processedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </p>
                 )}
             </div>
+
+            {/* Bank details — visible to the owner and to reviewers/finance */}
+            {hasBank && (
+                <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl p-5">
+                    <h2 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-2 mb-3">
+                        <Landmark className="h-4 w-4 text-zinc-400" />
+                        Payout Account
+                    </h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+                        <div>
+                            <p className="text-[11px] text-zinc-400">Account Holder</p>
+                            <p className="font-medium text-zinc-800 dark:text-zinc-200">{bank.accountHolderName || '—'}</p>
+                        </div>
+                        <div>
+                            <p className="text-[11px] text-zinc-400">Account Number</p>
+                            <p className="font-medium text-zinc-800 dark:text-zinc-200 font-mono">{bank.accountNumber || '—'}</p>
+                        </div>
+                        <div>
+                            <p className="text-[11px] text-zinc-400">IFSC</p>
+                            <p className="font-medium text-zinc-800 dark:text-zinc-200 font-mono">{bank.ifsc || '—'}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Bill images */}
             {data.bills?.length > 0 && (
@@ -152,9 +191,10 @@ async function ReimbursementDetail({ id }) {
                 </div>
             )}
 
-            {/* Review actions for Finance/Admin/LX */}
-            {isReviewer && data.status === 'PENDING' && (
-                <ReimbursementReview id={data._id} />
+            {/* Review / process actions — the component decides what to show
+                based on the viewer's role and the current status. */}
+            {isReviewer && (data.status === 'PENDING' || data.status === 'APPROVED') && (
+                <ReimbursementReview id={data._id} role={session.user.role} status={data.status} />
             )}
         </div>
     );

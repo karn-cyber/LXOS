@@ -228,6 +228,16 @@ export default async function EventDetailPage(props) {
                                 <p className="font-medium">{new Date(event.endDate).toLocaleString()}</p>
                             </div>
 
+                            {!event.roomId && event.location && (
+                                <div>
+                                    <div className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400 mb-1">
+                                        <MapPin className="h-4 w-4" />
+                                        <span>Location</span>
+                                    </div>
+                                    <p className="font-medium">{event.location}</p>
+                                </div>
+                            )}
+
                             {event.attendees > 0 && (
                                 <div>
                                     <div className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400 mb-1">

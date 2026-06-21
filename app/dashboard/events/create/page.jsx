@@ -27,6 +27,7 @@ export default function CreateEventPage() {
         startDate: '',
         endDate: '',
         roomId: '',
+        location: '',
         budgetAllocated: 0,
         attendees: 0,
         requirements: [],
@@ -329,10 +330,10 @@ export default function CreateEventPage() {
                             <CardHeader>
                                 <CardTitle>Room Booking</CardTitle>
                             </CardHeader>
-                            <CardContent>
+                            <CardContent className="space-y-4">
                                 <div>
                                     <Label htmlFor="roomId">Room (Optional)</Label>
-                                    <Select value={formData.roomId} onValueChange={(value) => setFormData({ ...formData, roomId: value })}>
+                                    <Select value={formData.roomId} onValueChange={(value) => setFormData({ ...formData, roomId: value, location: '' })}>
                                         <SelectTrigger>
                                             <SelectValue placeholder="Select room" />
                                         </SelectTrigger>
@@ -344,7 +345,32 @@ export default function CreateEventPage() {
                                             ))}
                                         </SelectContent>
                                     </Select>
+                                    {formData.roomId && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData({ ...formData, roomId: '' })}
+                                            className="mt-1.5 text-xs text-zinc-500 hover:text-primary underline"
+                                        >
+                                            Clear room & enter a custom location instead
+                                        </button>
+                                    )}
                                 </div>
+
+                                {/* When no bookable room is selected, allow a free-text venue. */}
+                                {!formData.roomId && (
+                                    <div>
+                                        <Label htmlFor="location">Location</Label>
+                                        <Input
+                                            id="location"
+                                            placeholder="e.g. Main Lawn, Auditorium Foyer, Online (Zoom)…"
+                                            value={formData.location}
+                                            onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                                        />
+                                        <p className="mt-1.5 text-xs text-zinc-500">
+                                            No room booked — enter where the event will take place.
+                                        </p>
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
 

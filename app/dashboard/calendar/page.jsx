@@ -7,7 +7,29 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Loader2 } from 'lucide-react';
+import { Loader2, MapPin } from 'lucide-react';
+
+// Where the event happens: a booked room takes precedence, otherwise the
+// free-text location entered at creation time.
+function getVenue(event) {
+    return event?.roomId?.name || event?.location || '';
+}
+
+// Renders the event name with its location underneath inside the calendar cell.
+function renderEventContent(arg) {
+    const venue = getVenue(arg.event.extendedProps);
+    return (
+        <div className="px-1 py-0.5 overflow-hidden leading-tight">
+            <div className="text-[11px] font-semibold truncate">{arg.event.title}</div>
+            {venue && (
+                <div className="flex items-center gap-0.5 text-[10px] opacity-90 truncate">
+                    <MapPin className="h-2.5 w-2.5 shrink-0" />
+                    <span className="truncate">{venue}</span>
+                </div>
+            )}
+        </div>
+    );
+}
 
 const EVENT_COLORS = {
     CLUB: '#71717a',
@@ -90,6 +112,7 @@ export default function CalendarPage() {
                         }}
                         events={calendarEvents}
                         eventClick={handleEventClick}
+                        eventContent={renderEventContent}
                         height="auto"
                         eventDisplay="block"
                         displayEventTime={true}
@@ -123,6 +146,16 @@ export default function CalendarPage() {
 
                             {selectedEvent.description && (
                                 <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed">{selectedEvent.description}</p>
+                            )}
+
+                            {getVenue(selectedEvent) && (
+                                <div>
+                                    <p className="text-xs text-zinc-400 mb-0.5">Location</p>
+                                    <p className="flex items-center gap-1.5 font-medium text-zinc-800 dark:text-zinc-200">
+                                        <MapPin className="h-3.5 w-3.5 text-zinc-400" />
+                                        {getVenue(selectedEvent)}
+                                    </p>
+                                </div>
                             )}
 
                             <div className="grid grid-cols-2 gap-3">

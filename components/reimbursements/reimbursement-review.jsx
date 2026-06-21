@@ -4,9 +4,12 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, Banknote } from 'lucide-react';
 
-export default function ReimbursementReview({ id }) {
+const APPROVER_ROLES = ['ADMIN', 'LX_TEAM'];
+const FINANCE_ROLES = ['ADMIN', 'FINANCE'];
+
+export default function ReimbursementReview({ id, role, status }) {
     const router = useRouter();
     const [action, setAction] = useState(null); // 'approve' | 'reject'
     const [notes, setNotes] = useState('');
@@ -14,23 +17,16 @@ export default function ReimbursementReview({ id }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    const submit = async () => {
-        setError('');
-        if (action === 'reject' && !rejectionReason.trim()) {
-            setError('Please provide a reason for rejection.');
-            return;
-        }
+    const canApprove = APPROVER_ROLES.includes(role);
+    const canProcess = FINANCE_ROLES.includes(role);
 
+    const patchStatus = async (payload) => {
         setLoading(true);
         try {
             const res = await fetch(`/api/reimbursements/${id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    status: action === 'approve' ? 'APPROVED' : 'REJECTED',
-                    notes: notes.trim() || null,
-                    rejectionReason: action === 'reject' ? rejectionReason.trim() : null,
-                }),
+                body: JSON.stringify(payload),
             });
 
             if (!res.ok) {
@@ -45,6 +41,55 @@ export default function ReimbursementReview({ id }) {
             setLoading(false);
         }
     };
+
+    const submit = async () => {
+        setError('');
+        if (action === 'reject' && !rejectionReason.trim()) {
+            setError('Please provide a reason for rejection.');
+            return;
+        }
+        await patchStatus({
+            status: action === 'approve' ? 'APPROVED' : 'REJECTED',
+            notes: notes.trim() || null,
+            rejectionReason: action === 'reject' ? rejectionReason.trim() : null,
+        });
+    };
+
+    // Finance step: an already-approved claim is paid out and marked processed.
+    if (status === 'APPROVED') {
+        if (!canProcess) {
+            return (
+                <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl p-5 text-sm text-zinc-500">
+                    Approved — awaiting the Finance team to process the payout.
+                </div>
+            );
+        }
+        return (
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl p-5 space-y-4">
+                <div>
+                    <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Process payout</h2>
+                    <p className="text-xs text-zinc-400 mt-0.5">This claim is approved. Mark it processed once the amount has been transferred.</p>
+                </div>
+                {error && <p className="text-xs text-red-500">{error}</p>}
+                <Button
+                    onClick={() => patchStatus({ status: 'PROCESSED' })}
+                    disabled={loading}
+                    className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-10 text-sm font-medium"
+                >
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : (<><Banknote className="h-4 w-4 mr-2" /> Mark as Processed</>)}
+                </Button>
+            </div>
+        );
+    }
+
+    // PENDING but the viewer can't approve (e.g. Finance-only) — nothing to do yet.
+    if (status === 'PENDING' && !canApprove) {
+        return (
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl p-5 text-sm text-zinc-500">
+                Awaiting LX / Admin approval before it can be processed.
+            </div>
+        );
+    }
 
     return (
         <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl p-5 space-y-4">

@@ -31,6 +31,7 @@ export async function GET(request) {
             endDate: event.endDate,
             status: event.status,
             budgetAllocated: event.budgetAllocated,
+            location: event.location || '',
             clubId: event.clubId ? { _id: event.clubId._id.toString(), name: event.clubId.name } : null,
             clanId: event.clanId ? { _id: event.clanId._id.toString(), name: event.clanId.name } : null,
             roomId: event.roomId ? { _id: event.roomId._id.toString(), name: event.roomId.name } : null,

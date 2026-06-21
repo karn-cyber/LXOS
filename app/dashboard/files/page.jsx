@@ -5,15 +5,10 @@ import dbConnect from '@/lib/db';
 import Reimbursement from '@/models/Reimbursement';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Plus, Receipt, ImageIcon, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { Plus } from 'lucide-react';
+import ReimbursementsView from '@/components/reimbursements/reimbursements-view';
 
 const REVIEWER_ROLES = ['ADMIN', 'FINANCE', 'LX_TEAM'];
-
-const STATUS_STYLES = {
-    APPROVED: 'text-green-600 bg-green-50 dark:bg-green-950/30',
-    PENDING:  'text-yellow-600 bg-yellow-50 dark:bg-yellow-950/30',
-    REJECTED: 'text-red-500 bg-red-50 dark:bg-red-950/30',
-};
 
 function formatAmount(n) {
     return `₹${Number(n).toLocaleString('en-IN')}`;
@@ -46,6 +41,7 @@ async function ReimbursementsContent() {
         .sort({ createdAt: -1 })
         .populate('submittedBy', 'name email')
         .populate('reviewedBy', 'name')
+        .populate('eventId', 'title type')
         .lean();
 
     const data = JSON.parse(JSON.stringify(items));
@@ -55,7 +51,7 @@ async function ReimbursementsContent() {
         acc[r.status] = (acc[r.status] || 0) + 1;
         acc[r.status + '_amt'] = (acc[r.status + '_amt'] || 0) + r.amount;
         return acc;
-    }, { total: 0, PENDING: 0, APPROVED: 0, REJECTED: 0 });
+    }, { total: 0, PENDING: 0, APPROVED: 0, REJECTED: 0, PROCESSED: 0 });
 
     return (
         <div className="space-y-8">
@@ -78,11 +74,12 @@ async function ReimbursementsContent() {
             </div>
 
             {/* Stat strip */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                 {[
                     { label: 'Total submitted', value: data.length, sub: formatAmount(totals.total) },
                     { label: 'Pending review', value: totals.PENDING, sub: formatAmount(totals.PENDING_amt || 0) },
                     { label: 'Approved', value: totals.APPROVED, sub: formatAmount(totals.APPROVED_amt || 0) },
+                    { label: 'Processed', value: totals.PROCESSED, sub: formatAmount(totals.PROCESSED_amt || 0) },
                     { label: 'Rejected', value: totals.REJECTED, sub: formatAmount(totals.REJECTED_amt || 0) },
                 ].map(({ label, value, sub }) => (
                     <div key={label} className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl p-4">
@@ -93,7 +90,7 @@ async function ReimbursementsContent() {
                 ))}
             </div>
 
-            {/* List */}
+            {/* List / CRM table */}
             {data.length === 0 ? (
                 <div className="text-center py-16 text-zinc-400 text-sm border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl">
                     No reimbursement requests yet.
@@ -102,41 +99,7 @@ async function ReimbursementsContent() {
                     </Link>
                 </div>
             ) : (
-                <div className="border border-zinc-100 dark:border-zinc-800 rounded-xl overflow-hidden bg-white dark:bg-zinc-900 divide-y divide-zinc-50 dark:divide-zinc-800">
-                    {data.map(r => (
-                        <Link key={r._id} href={`/dashboard/files/${r._id}`}>
-                            <div className="flex items-center gap-4 px-5 py-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
-                                <div className="shrink-0">
-                                    <Receipt className="h-4 w-4 text-zinc-400" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">{r.title}</p>
-                                    <p className="text-[11px] text-zinc-400 mt-0.5 truncate">
-                                        {isReviewer && r.submittedBy?.name
-                                            ? `${r.submittedBy.name} · `
-                                            : ''}
-                                        {r.category}
-                                        {' · '}
-                                        {new Date(r.expenseDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                                        {r.bills?.length > 0 && (
-                                            <span className="inline-flex items-center gap-0.5 ml-1">
-                                                · <ImageIcon className="h-2.5 w-2.5 inline" /> {r.bills.length} bill{r.bills.length !== 1 ? 's' : ''}
-                                            </span>
-                                        )}
-                                    </p>
-                                </div>
-                                <div className="flex items-center gap-3 shrink-0">
-                                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${STATUS_STYLES[r.status]}`}>
-                                        {r.status.toLowerCase()}
-                                    </span>
-                                    <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                                        {formatAmount(r.amount)}
-                                    </span>
-                                </div>
-                            </div>
-                        </Link>
-                    ))}
-                </div>
+                <ReimbursementsView items={data} isReviewer={isReviewer} />
             )}
         </div>
     );

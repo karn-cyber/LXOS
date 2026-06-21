@@ -42,6 +42,12 @@ const EventSchema = new mongoose.Schema({
         ref: 'Room',
         default: null,
     },
+    // Free-text venue used when no bookable room is selected.
+    location: {
+        type: String,
+        default: '',
+        trim: true,
+    },
     requirements: [{
         item: {
             type: String,

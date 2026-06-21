@@ -38,6 +38,7 @@ export async function GET() {
             .sort({ createdAt: -1 })
             .populate('submittedBy', 'name email')
             .populate('reviewedBy', 'name')
+            .populate('eventId', 'title type')
             .lean();
 
         return NextResponse.json(JSON.parse(JSON.stringify(items)));
@@ -55,7 +56,7 @@ export async function POST(request) {
         await dbConnect();
 
         const body = await request.json();
-        const { title, description, amount, expenseDate, category, bills } = body;
+        const { title, description, amount, expenseDate, category, bills, eventId, purpose, bankDetails } = body;
 
         if (!title || !amount || !expenseDate) {
             return NextResponse.json({ error: 'Title, amount, and expense date are required' }, { status: 400 });
@@ -68,6 +69,13 @@ export async function POST(request) {
             expenseDate: new Date(expenseDate),
             category: category || 'Other',
             bills: bills || [],
+            eventId: eventId || null,
+            purpose: (purpose || '').trim(),
+            bankDetails: {
+                accountHolderName: (bankDetails?.accountHolderName || '').trim(),
+                accountNumber: (bankDetails?.accountNumber || '').trim(),
+                ifsc: (bankDetails?.ifsc || '').trim().toUpperCase(),
+            },
             submittedBy: userId,
             status: 'PENDING',
         });
