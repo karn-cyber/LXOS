@@ -41,8 +41,8 @@ export default function ClanDetailView({
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-start justify-between">
-                <div className="flex items-start gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex items-start gap-2 sm:gap-4">
                     <Link href="/dashboard/clans">
                         <Button variant="ghost" size="sm">
                             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -131,28 +131,28 @@ export default function ClanDetailView({
 
             {/* Tabs Content */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-6">
-                    <TabsTrigger value="overview" className="flex items-center gap-2">
+                <TabsList className="flex w-full overflow-x-auto justify-start md:grid md:grid-cols-6">
+                    <TabsTrigger value="overview" className="flex items-center gap-2 shrink-0">
                         <Flag className="h-4 w-4" />
                         Overview
                     </TabsTrigger>
-                    <TabsTrigger value="events" className="flex items-center gap-2">
+                    <TabsTrigger value="events" className="flex items-center gap-2 shrink-0">
                         <Calendar className="h-4 w-4" />
                         Events
                     </TabsTrigger>
-                    <TabsTrigger value="budget" className="flex items-center gap-2">
+                    <TabsTrigger value="budget" className="flex items-center gap-2 shrink-0">
                         <DollarSign className="h-4 w-4" />
                         Budget
                     </TabsTrigger>
-                    <TabsTrigger value="initiatives" className="flex items-center gap-2">
+                    <TabsTrigger value="initiatives" className="flex items-center gap-2 shrink-0">
                         <Lightbulb className="h-4 w-4" />
                         Initiatives
                     </TabsTrigger>
-                    <TabsTrigger value="blog" className="flex items-center gap-2">
+                    <TabsTrigger value="blog" className="flex items-center gap-2 shrink-0">
                         <FileText className="h-4 w-4" />
                         Blog
                     </TabsTrigger>
-                    <TabsTrigger value="analytics" className="flex items-center gap-2">
+                    <TabsTrigger value="analytics" className="flex items-center gap-2 shrink-0">
                         <Trophy className="h-4 w-4" />
                         Analytics
                     </TabsTrigger>

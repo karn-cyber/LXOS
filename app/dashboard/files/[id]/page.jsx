@@ -5,7 +5,7 @@ import dbConnect from '@/lib/db';
 import Reimbursement from '@/models/Reimbursement';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ImageIcon, Calendar, User, FileText, Landmark, CalendarDays } from 'lucide-react';
+import { ArrowLeft, ImageIcon, Calendar, User, FileText, Landmark, CalendarDays, CheckCircle2, Clock, Banknote, XCircle } from 'lucide-react';
 import ReimbursementReview from '@/components/reimbursements/reimbursement-review';
 
 const REVIEWER_ROLES = ['ADMIN', 'FINANCE', 'LX_TEAM'];
@@ -16,6 +16,61 @@ const STATUS_STYLES = {
     REJECTED:  'text-red-500 bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/20',
     PROCESSED: 'text-blue-600 bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/20',
 };
+
+// Amazon-style horizontal progress: Raised -> LX Approved -> Finance Processed.
+function StatusTracker({ data }) {
+    const rejected = data.status === 'REJECTED';
+    const approved = ['APPROVED', 'PROCESSED'].includes(data.status);
+    const processed = data.status === 'PROCESSED';
+
+    const fmt = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : null;
+
+    if (rejected) {
+        return (
+            <div className="bg-white dark:bg-zinc-900 border border-red-100 dark:border-red-900/30 rounded-xl p-5">
+                <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-full bg-red-50 dark:bg-red-950/30 flex items-center justify-center">
+                        <XCircle className="h-5 w-5 text-red-500" />
+                    </div>
+                    <div>
+                        <p className="text-sm font-semibold text-red-600">Rejected</p>
+                        <p className="text-xs text-zinc-400">This claim was rejected and will not be paid out.</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    const steps = [
+        { label: 'Raised', icon: FileText, done: true, sub: fmt(data.createdAt) },
+        { label: 'LX Approved', icon: CheckCircle2, done: approved, sub: approved ? (fmt(data.reviewedAt) || 'done') : 'pending' },
+        { label: 'Finance Processed', icon: Banknote, done: processed, sub: processed ? (fmt(data.processedAt) || 'done') : 'pending' },
+    ];
+
+    return (
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl p-5">
+            <div className="flex items-center">
+                {steps.map((s, i) => {
+                    const Icon = s.done ? s.icon : Clock;
+                    return (
+                        <div key={s.label} className="flex items-center flex-1 last:flex-none">
+                            <div className="flex flex-col items-center text-center">
+                                <div className={`h-9 w-9 rounded-full flex items-center justify-center ${s.done ? 'bg-green-500 text-white' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400'}`}>
+                                    <Icon className="h-4 w-4" />
+                                </div>
+                                <p className={`text-[11px] font-medium mt-1.5 ${s.done ? 'text-zinc-800 dark:text-zinc-200' : 'text-zinc-400'}`}>{s.label}</p>
+                                <p className="text-[10px] text-zinc-400">{s.sub}</p>
+                            </div>
+                            {i < steps.length - 1 && (
+                                <div className={`h-0.5 flex-1 mx-2 ${steps[i + 1].done ? 'bg-green-500' : 'bg-zinc-200 dark:bg-zinc-700'}`} />
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
 
 function DetailSkeleton() {
     return (
@@ -34,6 +89,7 @@ async function ReimbursementDetail({ id }) {
     const item = await Reimbursement.findById(id)
         .populate('submittedBy', 'name email')
         .populate('reviewedBy', 'name email')
+        .populate('processedBy', 'name email')
         .lean();
 
     if (!item) notFound();
@@ -134,6 +190,9 @@ async function ReimbursementDetail({ id }) {
                     </p>
                 )}
             </div>
+
+            {/* Amazon-style progress tracker */}
+            <StatusTracker data={data} />
 
             {/* Bank details — visible to the owner and to reviewers/finance */}
             {hasBank && (

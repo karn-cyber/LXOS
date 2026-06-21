@@ -12,8 +12,9 @@ async function getClanWithDetails(id, userId, userRole, userClanId) {
     try {
         await dbConnect();
 
-        // Authorization check
-        if (userRole === 'CLAN_HEAD' && userClanId !== id) {
+        // Authorization check — only block a clan head who is linked to a
+        // *different* clan. Unlinked heads (clanId not set yet) may still view.
+        if (userRole === 'CLAN_HEAD' && userClanId && userClanId !== id) {
             return null; // Unauthorized
         }
 
@@ -159,7 +160,7 @@ export default async function ClanDetailPage({ params }) {
                 events={events}
                 user={user}
                 isAdmin={user.role === 'ADMIN'}
-                isClanLeader={user.role === 'CLAN_HEAD' && user.clanId === id}
+                isClanLeader={user.role === 'CLAN_HEAD' && (user.clanId === id || !user.clanId)}
             />
         </Suspense>
     );

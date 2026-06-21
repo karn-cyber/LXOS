@@ -38,6 +38,23 @@ const ReimbursementSchema = new mongoose.Schema({
         default: '',
         trim: true,
     },
+    // The submitter's club/clan (captured at submission). When the claim is
+    // approved, the amount is deducted from this club/clan's spent budget.
+    clubId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Club',
+        default: null,
+    },
+    clanId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Clan',
+        default: null,
+    },
+    // Guards against deducting from a budget more than once.
+    budgetDeducted: {
+        type: Boolean,
+        default: false,
+    },
     // Where the money should be sent. Collected at submission time.
     bankDetails: {
         accountHolderName: { type: String, default: '', trim: true },

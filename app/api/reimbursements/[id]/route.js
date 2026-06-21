@@ -78,34 +78,71 @@ export async function PATCH(request, { params }) {
         const isReviewer = REVIEWER_ROLES.includes(role);
 
         if (body.status) {
-            // Status changes follow a strict, role-gated workflow.
+            // Workflow: PENDING --(LX approve)--> APPROVED --(Finance)--> PROCESSED.
+            // An ADMIN's approve completes both steps at once (PENDING -> PROCESSED).
+            // Either approver or finance can REJECT at their stage.
             const target = body.status;
+            const isAdmin = role === 'ADMIN';
 
-            if (target === 'APPROVED' || target === 'REJECTED') {
+            if (target === 'APPROVED') {
                 if (!APPROVER_ROLES.includes(role)) {
-                    return NextResponse.json({ error: 'Only LX / Admin can approve or reject' }, { status: 403 });
+                    return NextResponse.json({ error: 'Only LX / Admin can approve' }, { status: 403 });
                 }
                 if (item.status !== 'PENDING') {
-                    return NextResponse.json({ error: `Cannot ${target.toLowerCase()} a request that is already ${item.status.toLowerCase()}` }, { status: 400 });
+                    return NextResponse.json({ error: `Already ${item.status.toLowerCase()}` }, { status: 400 });
                 }
-                item.status = target;
+                item.status = 'APPROVED';
                 item.reviewedBy = userId;
                 item.reviewedAt = new Date();
-                if (target === 'REJECTED') item.rejectionReason = body.rejectionReason || null;
                 if (body.notes) item.notes = body.notes;
             } else if (target === 'PROCESSED') {
-                if (!FINANCE_ROLES.includes(role)) {
-                    return NextResponse.json({ error: 'Only Finance / Admin can mark a claim processed' }, { status: 403 });
+                // Finance processes an approved claim; an admin can do it directly
+                // from PENDING (their single approval covers both steps).
+                const fromApproved = item.status === 'APPROVED' && FINANCE_ROLES.includes(role);
+                const adminDirect = item.status === 'PENDING' && isAdmin;
+                if (!fromApproved && !adminDirect) {
+                    return NextResponse.json({ error: 'Only Finance/Admin can process an approved claim' }, { status: 403 });
                 }
-                if (item.status !== 'APPROVED') {
-                    return NextResponse.json({ error: 'Only approved claims can be marked processed' }, { status: 400 });
+                if (adminDirect) {
+                    item.reviewedBy = userId;
+                    item.reviewedAt = new Date();
                 }
                 item.status = 'PROCESSED';
                 item.processedBy = userId;
                 item.processedAt = new Date();
                 if (body.notes) item.notes = body.notes;
+            } else if (target === 'REJECTED') {
+                // Rejectable while pending (by approver) or after approval (by finance).
+                const canReject =
+                    (item.status === 'PENDING' && APPROVER_ROLES.includes(role)) ||
+                    (item.status === 'APPROVED' && FINANCE_ROLES.includes(role));
+                if (!canReject) {
+                    return NextResponse.json({ error: 'Not allowed to reject at this stage' }, { status: 403 });
+                }
+                item.status = 'REJECTED';
+                item.reviewedBy = item.reviewedBy || userId;
+                item.reviewedAt = item.reviewedAt || new Date();
+                item.rejectionReason = body.rejectionReason || null;
+                if (body.notes) item.notes = body.notes;
             } else {
                 return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
+            }
+
+            // Budget sync: deduct from the submitter's club/clan once the claim is
+            // approved (or processed); refund if it ends up rejected after deduction.
+            const nowCommitted = item.status === 'APPROVED' || item.status === 'PROCESSED';
+            if (nowCommitted && !item.budgetDeducted && (item.clubId || item.clanId)) {
+                const Club = (await import('@/models/Club')).default;
+                const Clan = (await import('@/models/Clan')).default;
+                if (item.clubId) await Club.findByIdAndUpdate(item.clubId, { $inc: { budgetSpent: item.amount } });
+                if (item.clanId) await Clan.findByIdAndUpdate(item.clanId, { $inc: { budgetSpent: item.amount } });
+                item.budgetDeducted = true;
+            } else if (item.status === 'REJECTED' && item.budgetDeducted && (item.clubId || item.clanId)) {
+                const Club = (await import('@/models/Club')).default;
+                const Clan = (await import('@/models/Clan')).default;
+                if (item.clubId) await Club.findByIdAndUpdate(item.clubId, { $inc: { budgetSpent: -item.amount } });
+                if (item.clanId) await Clan.findByIdAndUpdate(item.clanId, { $inc: { budgetSpent: -item.amount } });
+                item.budgetDeducted = false;
             }
         } else {
             // Field edits — only the owner, and only while still pending.

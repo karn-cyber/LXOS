@@ -23,8 +23,10 @@ export async function GET(request) {
         if (category) filter.category = category;
         if (clubId) filter.clubId = clubId;
         if (clanId) filter.clanId = clanId;
+        // Non-admins see approved posts plus their own (so authors can see their
+        // pending submissions while they await approval).
         if (session.user.role !== 'ADMIN') {
-            filter.status = 'APPROVED';
+            filter.$or = [{ status: 'APPROVED' }, { createdBy: session.user.id }];
         }
 
         const achievements = await Achievement.find(filter)

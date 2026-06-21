@@ -5,6 +5,7 @@ import Approval from '@/models/Approval';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { getDashboardSession } from '@/lib/dashboard-session';
+import ApprovalQuickActions from '@/components/approvals/approval-quick-actions';
 
 import '@/models/Event';
 import '@/models/Expense';
@@ -33,9 +34,16 @@ function getReviewLink(approval) {
     const type = approval.entityModel || approval.type;
     if (!approval.entity?._id) return null;
     if (['Event', 'EVENT', 'BOOKING'].includes(type)) return `/dashboard/events/${approval.entity._id}`;
-    if (['Expense', 'EXPENSE'].includes(type)) return `/dashboard/expenses/${approval.entity._id}`;
+    if (['Reimbursement'].includes(type)) return `/dashboard/files/${approval.entity._id}`;
+    if (['Expense', 'EXPENSE'].includes(type)) return `/dashboard/files/${approval.entity._id}`;
     if (['Achievement', 'ACHIEVEMENT'].includes(type)) return `/dashboard/achievements/${approval.entity._id}/edit`;
     return null;
+}
+
+// Event/booking approvals can be actioned inline; others open their detail page.
+function isEventApproval(approval) {
+    const type = approval.entityModel || approval.type;
+    return ['Event', 'EVENT', 'BOOKING'].includes(type);
 }
 
 const PRIORITY_DOT = {
@@ -65,7 +73,7 @@ async function ApprovalsContent() {
 
     const filtered = approvals.filter(a => {
         if (session.user.role === 'ADMIN') return true;
-        if (session.user.role === 'LX_TEAM') return a.type === 'EVENT';
+        if (session.user.role === 'LX_TEAM') return a.type === 'EVENT' || a.type === 'BOOKING';
         if (session.user.role === 'FINANCE') return a.type === 'EXPENSE';
         return false;
     });
@@ -123,17 +131,22 @@ async function ApprovalsContent() {
                                     </p>
                                 </div>
 
-                                {reviewLink ? (
-                                    <Link href={reviewLink}>
-                                        <Button size="sm" className="bg-primary text-white hover:bg-primary/90 rounded-lg h-8 text-xs font-medium shrink-0">
-                                            Review
+                                <div className="flex items-center gap-2 shrink-0">
+                                    {reviewLink && (
+                                        <Link href={reviewLink}>
+                                            <Button size="sm" variant="outline" className="rounded-lg h-8 text-xs font-medium">
+                                                Open
+                                            </Button>
+                                        </Link>
+                                    )}
+                                    {isEventApproval(approval) && approval.entity?._id ? (
+                                        <ApprovalQuickActions entityId={approval.entity._id} />
+                                    ) : (!reviewLink && (
+                                        <Button size="sm" variant="outline" disabled className="rounded-lg h-8 text-xs">
+                                            No link
                                         </Button>
-                                    </Link>
-                                ) : (
-                                    <Button size="sm" variant="outline" disabled className="rounded-lg h-8 text-xs shrink-0">
-                                        No link
-                                    </Button>
-                                )}
+                                    ))}
+                                </div>
                             </div>
                         );
                     })}

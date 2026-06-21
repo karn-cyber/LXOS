@@ -84,17 +84,19 @@ export default async function ClubDetailPage(props) {
 
     const isAdmin = session.user.role === 'ADMIN';
 
-    // Check if user is the specific head of THIS club to allow posting updates
+    // A club head may post updates to their own club. Heads who aren't yet
+    // linked to a specific club (clubId not set) are allowed too, so they aren't
+    // blocked while admins finish linking them.
     const canPostUpdates = isAdmin ||
-        (session.user.role === 'CLUB_HEAD' && session.user.clubId === id);
+        (session.user.role === 'CLUB_HEAD' && (session.user.clubId === id || !session.user.clubId));
 
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-start justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                    <div className="flex items-center gap-3">
-                        <h1 className="text-3xl font-bold tracking-tight">{club.name}</h1>
+                    <div className="flex flex-wrap items-center gap-3">
+                        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{club.name}</h1>
                         <Badge variant="outline">{club.category}</Badge>
                         {!club.isActive && (
                             <Badge variant="destructive">Inactive</Badge>
@@ -117,11 +119,11 @@ export default async function ClubDetailPage(props) {
 
             {/* Main Content Tabs */}
             <Tabs defaultValue="overview" className="space-y-6">
-                <TabsList>
-                    <TabsTrigger value="overview">Overview</TabsTrigger>
-                    <TabsTrigger value="events">Events ({events.length})</TabsTrigger>
-                    <TabsTrigger value="budget">Budget</TabsTrigger>
-                    <TabsTrigger value="updates">Updates & Blog</TabsTrigger>
+                <TabsList className="flex w-full overflow-x-auto justify-start sm:w-auto sm:inline-flex">
+                    <TabsTrigger value="overview" className="shrink-0">Overview</TabsTrigger>
+                    <TabsTrigger value="events" className="shrink-0">Events ({events.length})</TabsTrigger>
+                    <TabsTrigger value="budget" className="shrink-0">Budget</TabsTrigger>
+                    <TabsTrigger value="updates" className="shrink-0">Updates &amp; Blog</TabsTrigger>
                 </TabsList>
 
                 {/* OVERVIEW TAB */}

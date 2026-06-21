@@ -15,18 +15,23 @@ async function getAuthContext() {
     try {
         const session = await getDashboardSession();
         if (session?.user?.id) {
-            return { userId: session.user.id, role: session.user.role || 'GUEST' };
+            return {
+                userId: session.user.id,
+                role: session.user.role || 'GUEST',
+                clubId: session.user.clubId || null,
+                clanId: session.user.clanId || null,
+            };
         }
     } catch {
         // MongoDB may be unavailable — fall back to Clerk-only auth
     }
     try {
         const { userId } = await auth();
-        if (userId) return { userId, role: 'GUEST' };
+        if (userId) return { userId, role: 'GUEST', clubId: null, clanId: null };
     } catch {
         // ignore
     }
-    return { userId: null, role: null };
+    return { userId: null, role: null, clubId: null, clanId: null };
 }
 
 export async function GET() {
@@ -53,7 +58,7 @@ export async function GET() {
 
 export async function POST(request) {
     try {
-        const { userId } = await getAuthContext();
+        const { userId, clubId, clanId } = await getAuthContext();
         if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
         await dbConnect();
@@ -74,6 +79,8 @@ export async function POST(request) {
             bills: bills || [],
             eventId: eventId || null,
             purpose: (purpose || '').trim(),
+            clubId: clubId || null,
+            clanId: clanId || null,
             bankDetails: {
                 accountHolderName: (bankDetails?.accountHolderName || '').trim(),
                 accountNumber: (bankDetails?.accountNumber || '').trim(),
