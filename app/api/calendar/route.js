@@ -20,6 +20,7 @@ export async function GET(request) {
             .populate('clubId', 'name')
             .populate('clanId', 'name')
             .populate('roomId', 'name')
+            .populate('roomIds', 'name')
             .lean();
 
         const formattedEvents = events.map(event => ({
@@ -35,6 +36,9 @@ export async function GET(request) {
             clubId: event.clubId ? { _id: event.clubId._id.toString(), name: event.clubId.name } : null,
             clanId: event.clanId ? { _id: event.clanId._id.toString(), name: event.clanId.name } : null,
             roomId: event.roomId ? { _id: event.roomId._id.toString(), name: event.roomId.name } : null,
+            roomIds: Array.isArray(event.roomIds)
+                ? event.roomIds.map(r => ({ _id: r._id.toString(), name: r.name }))
+                : [],
         }));
 
         return NextResponse.json(formattedEvents);

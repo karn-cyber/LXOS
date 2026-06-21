@@ -26,7 +26,7 @@ export default function CreateEventPage() {
         clanId: '',
         startDate: '',
         endDate: '',
-        roomId: '',
+        roomIds: [],
         location: '',
         budgetAllocated: 0,
         attendees: 0,
@@ -284,6 +284,7 @@ export default function CreateEventPage() {
                                             <SelectItem value="CLUB">Club Event</SelectItem>
                                             <SelectItem value="CLAN">Clan Event</SelectItem>
                                             <SelectItem value="LX">LX Event</SelectItem>
+                                            <SelectItem value="FEST">Fest</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -332,32 +333,59 @@ export default function CreateEventPage() {
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div>
-                                    <Label htmlFor="roomId">Room (Optional)</Label>
-                                    <Select value={formData.roomId} onValueChange={(value) => setFormData({ ...formData, roomId: value, location: '' })}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select room" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {rooms.map((room) => (
-                                                <SelectItem key={room._id} value={room._id}>
-                                                    {room.name} ({room.capacity} capacity)
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    {formData.roomId && (
+                                    <div className="flex items-center justify-between">
+                                        <Label>Rooms (Optional)</Label>
+                                        {formData.roomIds.length > 0 && (
+                                            <span className="text-xs text-zinc-500">{formData.roomIds.length} selected</span>
+                                        )}
+                                    </div>
+                                    <p className="text-xs text-zinc-500 mt-0.5 mb-2">
+                                        Select one or more rooms — useful for fests that need several at once. Already-booked rooms can&apos;t overlap.
+                                    </p>
+                                    {rooms.length === 0 ? (
+                                        <p className="text-xs text-zinc-400">No rooms available.</p>
+                                    ) : (
+                                        <div className="max-h-56 overflow-y-auto rounded-lg border border-zinc-200 dark:border-zinc-700 divide-y divide-zinc-100 dark:divide-zinc-800">
+                                            {rooms.map((room) => {
+                                                const checked = formData.roomIds.includes(room._id);
+                                                return (
+                                                    <label
+                                                        key={room._id}
+                                                        className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+                                                    >
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={checked}
+                                                            onChange={(e) => {
+                                                                setFormData((prev) => {
+                                                                    const next = e.target.checked
+                                                                        ? [...prev.roomIds, room._id]
+                                                                        : prev.roomIds.filter((id) => id !== room._id);
+                                                                    return { ...prev, roomIds: next, location: next.length > 0 ? '' : prev.location };
+                                                                });
+                                                            }}
+                                                            className="h-4 w-4 accent-primary"
+                                                        />
+                                                        <span className="text-sm flex-1">{room.name}</span>
+                                                        <span className="text-xs text-zinc-400">{room.capacity} cap</span>
+                                                    </label>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                    {formData.roomIds.length > 0 && (
                                         <button
                                             type="button"
-                                            onClick={() => setFormData({ ...formData, roomId: '' })}
+                                            onClick={() => setFormData({ ...formData, roomIds: [] })}
                                             className="mt-1.5 text-xs text-zinc-500 hover:text-primary underline"
                                         >
-                                            Clear room & enter a custom location instead
+                                            Clear rooms & enter a custom location instead
                                         </button>
                                     )}
                                 </div>
 
                                 {/* When no bookable room is selected, allow a free-text venue. */}
-                                {!formData.roomId && (
+                                {formData.roomIds.length === 0 && (
                                     <div>
                                         <Label htmlFor="location">Location</Label>
                                         <Input

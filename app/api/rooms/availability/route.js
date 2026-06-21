@@ -34,11 +34,12 @@ export async function POST(request) {
             });
         }
 
-        // Find conflicting events
+        // Find conflicting events — a room may be booked via roomIds[] or the
+        // legacy single roomId field.
         const filter = {
-            roomId,
             status: { $in: ['APPROVED', 'PENDING'] },
-            $or: [
+            $and: [
+                { $or: [{ roomIds: roomId }, { roomId }] },
                 {
                     startDate: { $lte: new Date(endDate) },
                     endDate: { $gte: new Date(startDate) },

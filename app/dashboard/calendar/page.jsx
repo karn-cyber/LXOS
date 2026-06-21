@@ -12,6 +12,9 @@ import { Loader2, MapPin } from 'lucide-react';
 // Where the event happens: a booked room takes precedence, otherwise the
 // free-text location entered at creation time.
 function getVenue(event) {
+    if (event?.roomIds?.length > 0) {
+        return event.roomIds.map(r => r.name).join(', ');
+    }
     return event?.roomId?.name || event?.location || '';
 }
 
@@ -35,6 +38,7 @@ const EVENT_COLORS = {
     CLUB: '#71717a',
     CLAN: '#a1a1aa',
     LX:   '#52525b',
+    FEST: '#7c3aed',
 };
 
 export default function CalendarPage() {
@@ -85,6 +89,7 @@ export default function CalendarPage() {
                         { color: 'bg-zinc-600', label: 'Club' },
                         { color: 'bg-zinc-400', label: 'Clan' },
                         { color: 'bg-zinc-700', label: 'LX' },
+                        { color: 'bg-violet-600', label: 'Fest' },
                     ].map(({ color, label }) => (
                         <div key={label} className="flex items-center gap-1.5 text-xs text-zinc-500">
                             <div className={`h-2 w-2 rounded-full ${color}`} />

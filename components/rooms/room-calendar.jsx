@@ -37,31 +37,32 @@ export default function RoomCalendar({ rooms }) {
                 if (res.ok) {
                     const data = await res.json();
 
+                    // An event can book several rooms — emit one calendar entry
+                    // per room so each room's schedule shows the booking.
                     const roomEvents = data
-                        .filter(e => e.roomId && e.status !== 'REJECTED')
-                        .map(e => {
-                            const roomId = e.roomId?._id || e.roomId;
-                            const room = rooms.find(r => r._id === roomId);
-                            const roomName = room ? room.name : (e.roomId?.name || 'Unknown Room');
+                        .filter(e => e.status !== 'REJECTED')
+                        .flatMap(e => {
+                            const eventRooms = (e.roomIds?.length > 0 ? e.roomIds : (e.roomId ? [e.roomId] : []));
                             const isPending = e.status === 'PENDING';
-                            const color = roomColors[roomId] || '#71717a';
+                            const bookedBy = e.clubId?.name || e.clanId?.name || (e.type === 'FEST' ? 'Fest' : 'LX / Admin');
 
-                            return {
-                                id: e._id,
-                                title: e.title,
-                                start: e.startDate,
-                                end: e.endDate,
-                                backgroundColor: isPending ? '#ffffff' : color,
-                                borderColor: color,
-                                textColor: isPending ? color : '#ffffff',
-                                extendedProps: {
-                                    roomId,
-                                    room: roomName,
-                                    status: e.status,
-                                    isPending,
-                                    bookedBy: e.clubId?.name || e.clanId?.name || 'LX / Admin',
-                                },
-                            };
+                            return eventRooms.map(rm => {
+                                const roomId = rm?._id || rm;
+                                const room = rooms.find(r => r._id === roomId);
+                                const roomName = room ? room.name : (rm?.name || 'Unknown Room');
+                                const color = roomColors[roomId] || '#71717a';
+
+                                return {
+                                    id: `${e._id}-${roomId}`,
+                                    title: e.title,
+                                    start: e.startDate,
+                                    end: e.endDate,
+                                    backgroundColor: isPending ? '#ffffff' : color,
+                                    borderColor: color,
+                                    textColor: isPending ? color : '#ffffff',
+                                    extendedProps: { roomId, room: roomName, status: e.status, isPending, bookedBy },
+                                };
+                            });
                         });
                     setEvents(roomEvents);
                 }

@@ -164,44 +164,62 @@ export default async function EventDetailPage(props) {
                         </Card>
                     )}
 
-                    {/* Room Details */}
-                    {event.roomId && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Venue Details</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-3">
-                                <div className="flex items-center gap-2">
-                                    <MapPin className="h-4 w-4 text-zinc-500" />
-                                    <span className="font-medium">{event.roomId.name}</span>
-                                </div>
-                                <div className="grid gap-2 text-sm">
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-zinc-500">Type:</span>
-                                        <span>{event.roomId.type}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-zinc-500">Capacity:</span>
-                                        <span>{event.roomId.capacity} people</span>
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-zinc-500">Location:</span>
-                                        <span>{event.roomId.location}</span>
-                                    </div>
-                                </div>
-                                {event.roomId.facilities && event.roomId.facilities.length > 0 && (
-                                    <div>
-                                        <p className="text-sm font-medium mb-2">Facilities:</p>
-                                        <div className="flex flex-wrap gap-2">
-                                            {event.roomId.facilities.map((facility, index) => (
-                                                <Badge key={index} variant="outline">{facility}</Badge>
-                                            ))}
+                    {/* Room Details — an event may book several rooms */}
+                    {(() => {
+                        const venueRooms = event.roomIds?.length > 0
+                            ? event.roomIds
+                            : (event.roomId ? [event.roomId] : []);
+                        if (venueRooms.length === 0) return null;
+                        return (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>
+                                        {venueRooms.length > 1 ? `Venues (${venueRooms.length} rooms)` : 'Venue Details'}
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-5">
+                                    {venueRooms.map((room, ri) => (
+                                        <div key={room._id || ri} className="space-y-3 pb-4 last:pb-0 border-b last:border-b-0 border-zinc-100 dark:border-zinc-800">
+                                            <div className="flex items-center gap-2">
+                                                <MapPin className="h-4 w-4 text-zinc-500" />
+                                                <span className="font-medium">{room.name}</span>
+                                            </div>
+                                            <div className="grid gap-2 text-sm">
+                                                {room.type && (
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-zinc-500">Type:</span>
+                                                        <span>{room.type}</span>
+                                                    </div>
+                                                )}
+                                                {room.capacity != null && (
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-zinc-500">Capacity:</span>
+                                                        <span>{room.capacity} people</span>
+                                                    </div>
+                                                )}
+                                                {room.location && (
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-zinc-500">Location:</span>
+                                                        <span>{room.location}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            {room.facilities && room.facilities.length > 0 && (
+                                                <div>
+                                                    <p className="text-sm font-medium mb-2">Facilities:</p>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {room.facilities.map((facility, index) => (
+                                                            <Badge key={index} variant="outline">{facility}</Badge>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                    )}
+                                    ))}
+                                </CardContent>
+                            </Card>
+                        );
+                    })()}
                 </div>
 
                 {/* Sidebar */}

@@ -88,6 +88,7 @@ export async function POST(request, { params }) {
             .populate('clubId', 'name')
             .populate('clanId', 'name color')
             .populate('roomId', 'name')
+            .populate('roomIds', 'name')
             .populate('createdBy', 'name email')
             .populate('approvedBy', 'name email')
             .lean();

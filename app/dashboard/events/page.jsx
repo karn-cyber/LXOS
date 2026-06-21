@@ -15,6 +15,7 @@ async function getEvents() {
         .populate('clubId', 'name')
         .populate('clanId', 'name')
         .populate('roomId', 'name')
+        .populate('roomIds', 'name')
         .populate('createdBy', 'name')
         .lean();
     return JSON.parse(JSON.stringify(events));
@@ -96,8 +97,10 @@ async function EventsContent() {
                                             {event.title}
                                         </p>
                                         <p className="text-xs text-zinc-400 truncate mt-0.5">
-                                            {event.clubId?.name || event.clanId?.name || 'LX Event'}
-                                            {event.roomId && ` · ${event.roomId.name}`}
+                                            {event.clubId?.name || event.clanId?.name || (event.type === 'FEST' ? 'Fest' : 'LX Event')}
+                                            {(event.roomIds?.length > 0
+                                                ? ` · ${event.roomIds.map(r => r.name).join(', ')}`
+                                                : event.roomId ? ` · ${event.roomId.name}` : event.location ? ` · ${event.location}` : '')}
                                             {' · '}
                                             {new Date(event.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                         </p>

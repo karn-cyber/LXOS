@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db';
 import Event from '@/models/Event';
 import Room from '@/models/Room';
 import { auth } from '@/lib/api-auth';
+import { normalizeRoomIds, findRoomConflicts } from '@/lib/event-rooms';
 
 export async function GET(request, { params }) {
     try {
@@ -19,6 +20,7 @@ export async function GET(request, { params }) {
             .populate('clubId', 'name category budgetAllocated')
             .populate('clanId', 'name color points')
             .populate('roomId', 'name type capacity location facilities')
+            .populate('roomIds', 'name type capacity location facilities')
             .populate('createdBy', 'name email role')
             .populate('approvedBy', 'name email')
             .lean();
@@ -121,7 +123,7 @@ export async function PATCH(request, { params }) {
         // Update allowed fields
         const allowedUpdates = [
             'title', 'description', 'startDate', 'endDate',
-            'roomId', 'budgetAllocated', 'attendees', 'requirements'
+            'budgetAllocated', 'attendees', 'requirements', 'location'
         ];
 
         allowedUpdates.forEach(field => {
@@ -130,31 +132,32 @@ export async function PATCH(request, { params }) {
             }
         });
 
+        // Rooms can be sent as roomIds[] and/or legacy roomId.
+        const roomsProvided = body.roomIds !== undefined || body.roomId !== undefined;
+        const selectedRoomIds = roomsProvided ? normalizeRoomIds(body) : null;
+
         // Validate dates
         if (event.startDate >= event.endDate) {
             return NextResponse.json({ error: 'End date must be after start date' }, { status: 400 });
         }
 
-        // Check room conflicts if room changed
-        if (body.roomId && body.roomId !== event.roomId?.toString()) {
-            const conflicts = await Event.find({
-                _id: { $ne: id },
-                roomId: body.roomId,
-                status: { $in: ['APPROVED', 'PENDING'] },
-                $or: [
-                    {
-                        startDate: { $lte: event.endDate },
-                        endDate: { $gte: event.startDate },
-                    },
-                ],
-            });
-
+        // Check conflicts for the (new) set of rooms against everything else.
+        if (selectedRoomIds && selectedRoomIds.length > 0) {
+            const conflicts = await findRoomConflicts(selectedRoomIds, event.startDate, event.endDate, id);
             if (conflicts.length > 0) {
+                const rooms = await Room.find({ _id: { $in: conflicts.map(c => c.roomId) } }).select('name').lean();
+                const nameOf = (rid) => rooms.find(r => r._id.toString() === rid)?.name || 'Room';
                 return NextResponse.json({
-                    error: 'Room is not available for the selected time slot',
-                    conflicts: conflicts.map(c => ({ title: c.title, startDate: c.startDate, endDate: c.endDate }))
+                    error: `These rooms are already booked for the selected time: ${conflicts.map(c => nameOf(c.roomId)).join(', ')}`,
+                    conflicts,
                 }, { status: 409 });
             }
+        }
+
+        if (selectedRoomIds) {
+            event.roomIds = selectedRoomIds;
+            event.roomId = selectedRoomIds[0] || null;
+            if (selectedRoomIds.length > 0) event.location = '';
         }
 
         await event.save();
@@ -163,6 +166,7 @@ export async function PATCH(request, { params }) {
             .populate('clubId', 'name category')
             .populate('clanId', 'name color')
             .populate('roomId', 'name type capacity')
+            .populate('roomIds', 'name type capacity')
             .populate('createdBy', 'name email')
             .lean();
 

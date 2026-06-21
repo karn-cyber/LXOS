@@ -12,7 +12,7 @@ const EventSchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ['CLUB', 'CLAN', 'LX'],
+        enum: ['CLUB', 'CLAN', 'LX', 'FEST'],
         required: true,
     },
     clubId: {
@@ -37,6 +37,13 @@ const EventSchema = new mongoose.Schema({
         type: Date,
         required: [true, 'Please provide an end date'],
     },
+    // Rooms booked for this event. An event (e.g. a Fest) can occupy several
+    // rooms at once. `roomId` is kept as the primary/first room for backward
+    // compatibility with older single-room reads.
+    roomIds: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Room',
+    }],
     roomId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Room',

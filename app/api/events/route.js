@@ -5,6 +5,7 @@ import Club from '@/models/Club';
 import Clan from '@/models/Clan';
 import Room from '@/models/Room';
 import { auth } from '@/lib/api-auth';
+import { normalizeRoomIds, findRoomConflicts } from '@/lib/event-rooms';
 
 export async function GET(request) {
     try {
@@ -31,6 +32,7 @@ export async function GET(request) {
             .populate('clubId', 'name')
             .populate('clanId', 'name color')
             .populate('roomId', 'name')
+            .populate('roomIds', 'name')
             .populate('createdBy', 'name email')
             .lean();
 
@@ -40,6 +42,9 @@ export async function GET(request) {
             clubId: event.clubId ? { ...event.clubId, _id: event.clubId._id.toString() } : null,
             clanId: event.clanId ? { ...event.clanId, _id: event.clanId._id.toString() } : null,
             roomId: event.roomId ? { ...event.roomId, _id: event.roomId._id.toString() } : null,
+            roomIds: Array.isArray(event.roomIds)
+                ? event.roomIds.map(r => ({ ...r, _id: r._id.toString() }))
+                : [],
             createdBy: event.createdBy ? { ...event.createdBy, _id: event.createdBy._id.toString() } : null,
         }));
 
@@ -93,27 +98,20 @@ export async function POST(request) {
             return NextResponse.json({ error: 'Clan ID required for clan events' }, { status: 400 });
         }
 
-        // Check room availability if room is selected
-        if (roomId) {
-            const conflictingEvents = await Event.find({
-                roomId,
-                status: { $in: ['APPROVED', 'PENDING'] },
-                $or: [
-                    {
-                        startDate: { $lte: new Date(endDate) },
-                        endDate: { $gte: new Date(startDate) },
-                    },
-                ],
-            });
+        // One or more rooms may be booked (e.g. a Fest needs several at once).
+        const selectedRoomIds = normalizeRoomIds(body);
 
-            if (conflictingEvents.length > 0) {
+        // Every selected room must be free for the whole time window.
+        if (selectedRoomIds.length > 0) {
+            const conflicts = await findRoomConflicts(selectedRoomIds, startDate, endDate);
+
+            if (conflicts.length > 0) {
+                // Map ids -> names so the message is readable.
+                const rooms = await Room.find({ _id: { $in: conflicts.map(c => c.roomId) } }).select('name').lean();
+                const nameOf = (id) => rooms.find(r => r._id.toString() === id)?.name || 'Room';
                 return NextResponse.json({
-                    error: 'Room is not available for the selected time slot',
-                    conflicts: conflictingEvents.map(e => ({
-                        title: e.title,
-                        startDate: e.startDate,
-                        endDate: e.endDate,
-                    })),
+                    error: `These rooms are already booked for the selected time: ${conflicts.map(c => nameOf(c.roomId)).join(', ')}`,
+                    conflicts,
                 }, { status: 409 });
             }
         }
@@ -126,8 +124,9 @@ export async function POST(request) {
             clanId: type === 'CLAN' ? clanId : undefined,
             startDate: new Date(startDate),
             endDate: new Date(endDate),
-            roomId: roomId || null,
-            location: roomId ? '' : (location || '').trim(),
+            roomIds: selectedRoomIds,
+            roomId: selectedRoomIds[0] || null,
+            location: selectedRoomIds.length > 0 ? '' : (location || '').trim(),
             requirements: requirements || [],
             budgetAllocated: budgetAllocated || 0,
             attendees: attendees || 0,
@@ -139,7 +138,7 @@ export async function POST(request) {
         if (event.status === 'PENDING') {
             const { default: Approval } = await import('@/models/Approval');
             await Approval.create({
-                type: roomId ? 'BOOKING' : 'EVENT', // If room is involved, treat as booking request + event
+                type: selectedRoomIds.length > 0 ? 'BOOKING' : 'EVENT', // If rooms are involved, treat as booking request + event
                 entityId: event._id,
                 entityModel: 'Event',
                 requestedBy: session.user.id,
@@ -152,6 +151,7 @@ export async function POST(request) {
             .populate('clubId', 'name')
             .populate('clanId', 'name color')
             .populate('roomId', 'name')
+            .populate('roomIds', 'name')
             .populate('createdBy', 'name email')
             .lean();
 
