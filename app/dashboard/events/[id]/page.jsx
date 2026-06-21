@@ -51,7 +51,7 @@ export default async function EventDetailPage(props) {
     }
 
     const canApprove = session.user.role === 'ADMIN' || session.user.role === 'LX_TEAM';
-    const budgetRemaining = event.budgetAllocated - event.budgetSpent;
+    const budgetRemaining = (event.budgetAllocated || 0) - (event.budgetSpent || 0);
 
     return (
         <div className="space-y-6">
@@ -150,13 +150,13 @@ export default async function EventDetailPage(props) {
                                                 <p className="font-medium">{req.item}</p>
                                                 <p className="text-sm text-zinc-500 dark:text-zinc-400">Quantity: {req.quantity}</p>
                                             </div>
-                                            <p className="font-medium">₹{req.estimatedCost.toLocaleString()}</p>
+                                            <p className="font-medium">₹{(req.estimatedCost || 0).toLocaleString()}</p>
                                         </div>
                                     ))}
                                     <div className="pt-3 border-t border-zinc-200 dark:border-zinc-800">
                                         <div className="flex items-center justify-between font-semibold">
                                             <span>Total Estimated Cost</span>
-                                            <span>₹{event.requirements.reduce((sum, req) => sum + req.estimatedCost, 0).toLocaleString()}</span>
+                                            <span>₹{event.requirements.reduce((sum, req) => sum + (req.estimatedCost || 0), 0).toLocaleString()}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -305,11 +305,11 @@ export default async function EventDetailPage(props) {
                         <CardContent className="space-y-3">
                             <div className="flex items-center justify-between text-sm">
                                 <span className="text-zinc-500 dark:text-zinc-400">Allocated</span>
-                                <span className="font-medium">₹{event.budgetAllocated.toLocaleString()}</span>
+                                <span className="font-medium">₹{(event.budgetAllocated || 0).toLocaleString()}</span>
                             </div>
                             <div className="flex items-center justify-between text-sm">
                                 <span className="text-zinc-500 dark:text-zinc-400">Spent</span>
-                                <span className="font-medium text-red-600 dark:text-red-400">₹{event.budgetSpent.toLocaleString()}</span>
+                                <span className="font-medium text-red-600 dark:text-red-400">₹{(event.budgetSpent || 0).toLocaleString()}</span>
                             </div>
                             <div className="flex items-center justify-between text-sm pt-3 border-t border-zinc-200 dark:border-zinc-800">
                                 <span className="text-zinc-500 dark:text-zinc-400">Remaining</span>
