@@ -7,6 +7,7 @@ import {
 } from 'recharts';
 import { Loader2 } from 'lucide-react';
 import BudgetReport from '@/components/budget/budget-report';
+import LxReportDownload from '@/components/budget/lx-report-download';
 
 const COLORS = ['#7f1d1d', '#991b1b', '#1d4ed8', '#15803d', '#7c3aed'];
 
@@ -176,6 +177,9 @@ export default function AnalyticsPage() {
           )}
         </ChartCard>
       </div>
+
+      {/* Combined LX semester report (all sections in one file) */}
+      <LxReportDownload semesters={data.allSemesters} />
 
       {/* Downloadable per-semester budget report */}
       <BudgetReport entities={data.budgetEntities} semesters={data.allSemesters} />
