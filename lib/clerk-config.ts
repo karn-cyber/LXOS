@@ -47,6 +47,13 @@ function emailExistsInRUData(email: string): boolean {
   return found;
 }
 
+// Any Rishihood email (rishihood.edu.in or any subdomain like nst./design./
+// csds./psy./makers./learner.rishihood.edu.in) is a valid college address.
+export function isRishihoodEmail(email: string): boolean {
+  const domain = normalizeEmail(email).split('@')[1] || '';
+  return domain === 'rishihood.edu.in' || domain.endsWith('.rishihood.edu.in');
+}
+
 // Function to check if email is allowed
 export function isEmailAllowed(email: string): boolean {
   if (!email) {
@@ -55,18 +62,21 @@ export function isEmailAllowed(email: string): boolean {
   }
 
   const normalizedEmail = normalizeEmail(email);
-  
-  // Check if it's an admin exception
+
+  // Admin exception
   if (ADMIN_EXCEPTIONS.includes(normalizedEmail)) {
     console.log('[clerk-config] Email is admin exception:', normalizedEmail);
     return true;
   }
 
-  // Check if email exists in RU data
-  const existsInRU = emailExistsInRUData(normalizedEmail);
-  console.log('[clerk-config] Email allowed based on RU data check:', existsInRU);
-  
-  return existsInRU;
+  // Any Rishihood-domain email is allowed (covers people not yet in the RU
+  // snapshot — e.g. new students or subdomains we don't have records for).
+  if (isRishihoodEmail(normalizedEmail)) {
+    return true;
+  }
+
+  // Otherwise, allow if the email exists in the RU directory data.
+  return emailExistsInRUData(normalizedEmail);
 }
 
 // Function to check if email domain is verified college email
