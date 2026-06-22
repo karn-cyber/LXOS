@@ -1,5 +1,5 @@
-import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
+import { getDashboardSession } from '@/lib/dashboard-session';
 import { Suspense } from 'react';
 import dbConnect from '@/lib/db';
 import Event from '@/models/Event';
@@ -119,15 +119,16 @@ const TYPE_DOT = {
     LX:   'bg-emerald-400',
 };
 
-async function DashboardContent() {
-    const session = await auth();
-    if (!session?.userId) redirect('/login');
+// Map the app role to the quick-actions key (which uses RU-style keys).
+const ROLE_TO_ACTION_KEY = { ADMIN: 'ADMIN', LX_TEAM: 'LX', CLUB_HEAD: 'CLUB', CLAN_HEAD: 'CLAN', FINANCE: 'FINANCE' };
 
-    const userEmail = session.sessionClaims?.email || '';
-    const userName = session.sessionClaims?.name || 'there';
-    const firstName = userName.split(' ')[0];
-    const userType = userEmail ? await getUserType(userEmail) : null;
-    const quickActions = getQuickActions(userType);
+async function DashboardContent() {
+    // Unified session — works for both Clerk and Rishiverse SSO logins.
+    const session = await getDashboardSession();
+    if (!session) redirect('/login');
+
+    const firstName = (session.user.name || 'there').split(' ')[0];
+    const quickActions = getQuickActions(ROLE_TO_ACTION_KEY[session.user.role]);
 
     const [stats, recentEvents, nextEvent] = await Promise.all([
         getDashboardStats(),

@@ -46,44 +46,39 @@ export default function DashboardSidebar({ children }) {
   const [userRole, setUserRole] = useState('GUEST');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [roleLoading, setRoleLoading] = useState(true);
+  const [me, setMe] = useState(null); // unified session (Clerk or SSO)
 
-  const userName = clerkUser?.firstName && clerkUser?.lastName
-    ? `${clerkUser.firstName} ${clerkUser.lastName}`
-    : clerkUser?.firstName || 'User';
-  const userEmail = clerkUser?.primaryEmailAddress?.emailAddress || '';
+  const userName = me?.name
+    || (clerkUser?.firstName && clerkUser?.lastName ? `${clerkUser.firstName} ${clerkUser.lastName}` : clerkUser?.firstName)
+    || 'User';
+  const userEmail = me?.email || clerkUser?.primaryEmailAddress?.emailAddress || '';
   const userInitials = userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
+  // Source of truth for name + role is the unified session endpoint, so it's
+  // correct whether the user signed in via Clerk or Rishiverse SSO.
   useEffect(() => {
-    if (!userEmail) return;
     setRoleLoading(true);
-    const fetchRole = async () => {
-      try {
-        const ruRes = await fetch(`/api/ru-users/${encodeURIComponent(userEmail)}`);
-        if (ruRes.ok) {
-          const ruData = await ruRes.json();
-          if (ruData.found && ruData.role) { setUserRole(ruData.role); return; }
+    fetch('/api/me')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.user) {
+          setMe(data.user);
+          setUserRole(data.user.role || 'GUEST');
         }
-        const dbRes = await fetch(`/api/users/${encodeURIComponent(userEmail)}`);
-        if (dbRes.ok) {
-          const dbData = await dbRes.json();
-          setUserRole(dbData.role || 'GUEST');
-        }
-      } catch {
-        setUserRole('GUEST');
-      } finally {
-        setRoleLoading(false);
-      }
-    };
-    fetchRole();
-  }, [userEmail]);
+      })
+      .catch(() => setUserRole('GUEST'))
+      .finally(() => setRoleLoading(false));
+  }, []);
 
   const filteredNav = navigation.filter(item =>
     !item.permission || hasPermission(userRole, item.permission)
   );
 
   const handleSignOut = async () => {
-    await signOut();
-    router.push('/');
+    // Clear the Rishiverse SSO cookie (no-op for Clerk-only users), then Clerk.
+    try { await fetch('/api/sso/logout', { method: 'POST' }); } catch { /* noop */ }
+    try { await signOut(); } catch { /* noop */ }
+    router.push('/login');
   };
 
   const roleMeta = ROLE_META[userRole] || ROLE_META.GUEST;

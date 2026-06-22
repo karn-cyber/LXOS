@@ -4,12 +4,21 @@ import dbConnect from '@/lib/db';
 import User from '@/models/User';
 import { isEmailAllowed, isCollegeEmail, ADMIN_EXCEPTIONS } from '@/lib/clerk-config';
 import { getRoleFromRUData, lookupRUUser } from '@/lib/ru-data-mapper';
+import { getSsoEmail } from '@/lib/sso';
 
 /**
  * This component enforces email-based access control
  * Place it in your protected layouts/pages
  */
 export async function AuthGuard({ children }: { children: React.ReactNode }) {
+  // Rishiverse SSO: if a valid SSO session exists, the user is already
+  // authenticated by Rishiverse — let them in (role/provisioning is handled in
+  // getDashboardSession).
+  const ssoEmail = await getSsoEmail();
+  if (ssoEmail) {
+    return children;
+  }
+
   const session = await auth();
 
   if (!session?.userId) {
@@ -93,7 +102,9 @@ export async function AuthGuard({ children }: { children: React.ReactNode }) {
           throw err;
         }
       }
-    } else if (dbUser && dbUser.role !== mappedRole) {
+    } else if (dbUser && dbUser.role === 'GUEST' && mappedRole !== 'GUEST') {
+      // Promote a GUEST to their RU-mapped role, but never downgrade or override
+      // a role granted via Access Management (e.g. LX/Finance/club-clan head).
       await User.updateOne({ email: normalizedEmail }, { $set: { role: mappedRole } });
     }
   } catch (error) {
