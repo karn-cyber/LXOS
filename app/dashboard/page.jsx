@@ -16,16 +16,18 @@ import Link from 'next/link';
 async function getDashboardStats() {
     try {
         await dbConnect();
-        const [totalEvents, totalClubs, totalClans, upcomingEvents, pendingApprovals] = await Promise.all([
-            Event.countDocuments(),
+        const now = new Date();
+        const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+        const [completedEvents, totalClubs, totalClans, upcomingEvents, pendingApprovals] = await Promise.all([
+            Event.countDocuments({ $or: [{ isCompleted: true }, { status: 'COMPLETED' }] }),
             Club.countDocuments({ isActive: true }),
             Clan.countDocuments(),
-            Event.countDocuments({ startDate: { $gte: new Date() }, status: 'APPROVED' }),
+            Event.countDocuments({ startDate: { $gte: now, $lte: in30Days }, status: 'APPROVED' }),
             Approval.countDocuments({ status: 'PENDING' }),
         ]);
-        return { totalEvents, totalClubs, totalClans, upcomingEvents, pendingApprovals };
+        return { completedEvents, totalClubs, totalClans, upcomingEvents, pendingApprovals };
     } catch {
-        return { totalEvents: 0, totalClubs: 0, totalClans: 0, upcomingEvents: 0, pendingApprovals: 0 };
+        return { completedEvents: 0, totalClubs: 0, totalClans: 0, upcomingEvents: 0, pendingApprovals: 0 };
     }
 }
 
@@ -134,10 +136,10 @@ async function DashboardContent() {
     ]);
 
     const statItems = [
-        { label: 'Total events', value: stats.totalEvents, icon: CalendarDays, href: '/dashboard/events' },
+        { label: 'Events completed', value: stats.completedEvents, icon: CalendarDays, href: '/dashboard/events' },
         { label: 'Active clubs', value: stats.totalClubs, icon: Users, href: '/dashboard/clubs' },
         { label: 'Clans', value: stats.totalClans, icon: Flag, href: '/dashboard/clans' },
-        { label: 'Upcoming', value: stats.upcomingEvents, icon: Clock, href: '/dashboard/calendar' },
+        { label: 'Upcoming (next 30 days)', value: stats.upcomingEvents, icon: Clock, href: '/dashboard/calendar' },
     ];
 
     return (
