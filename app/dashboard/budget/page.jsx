@@ -60,7 +60,7 @@ function BudgetSkeleton() {
 async function BudgetContent() {
     const session = await getDashboardSession();
     if (!session) redirect('/login');
-    if (!['ADMIN', 'FINANCE'].includes(session.user.role)) redirect('/dashboard');
+    if (!['ADMIN', 'FINANCE', 'LX_TEAM'].includes(session.user.role)) redirect('/dashboard');
 
     const { clubs, clans, totals, expensesByCategory } = await getBudgetData();
 

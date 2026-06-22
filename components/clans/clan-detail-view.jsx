@@ -37,7 +37,9 @@ export default function ClanDetailView({
     const [clanData, setClanData] = useState(clan);
     
     const canEdit = isAdmin || isClanLeader;
-    
+    // Budget is only visible to Admin, LX, and this clan's own head.
+    const canViewBudget = isAdmin || isClanLeader || user?.role === 'LX_TEAM';
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -79,7 +81,7 @@ export default function ClanDetailView({
             </div>
 
             {/* Quick Stats */}
-            <div className="grid gap-4 md:grid-cols-4">
+            <div className={`grid gap-4 ${canViewBudget ? 'md:grid-cols-4' : 'sm:grid-cols-2'}`}>
                 <Card>
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between">
@@ -91,47 +93,51 @@ export default function ClanDetailView({
                         </div>
                     </CardContent>
                 </Card>
-                
+
                 <Card>
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm font-medium text-zinc-500">Budget Allocated</p>
-                                <p className="text-2xl font-bold">₹{clanData.budgetAllocated?.toLocaleString() || 0}</p>
+                                <p className="text-sm font-medium text-zinc-500">Events</p>
+                                <p className="text-2xl font-bold">{events?.length || 0}</p>
                             </div>
-                            <DollarSign className="h-8 w-8 text-green-500" />
+                            <Calendar className="h-8 w-8 text-zinc-400" />
                         </div>
                     </CardContent>
                 </Card>
-                
-                <Card>
-                    <CardContent className="p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-medium text-zinc-500">Budget Spent</p>
-                                <p className="text-2xl font-bold">₹{clanData.budgetSpent?.toLocaleString() || 0}</p>
-                            </div>
-                            <DollarSign className="h-8 w-8 text-red-500" />
-                        </div>
-                    </CardContent>
-                </Card>
-                
-                <Card>
-                    <CardContent className="p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-medium text-zinc-500">Budget Remaining</p>
-                                <p className="text-2xl font-bold">₹{((clanData.budgetAllocated || 0) - (clanData.budgetSpent || 0)).toLocaleString()}</p>
-                            </div>
-                            <DollarSign className="h-8 w-8 text-blue-500" />
-                        </div>
-                    </CardContent>
-                </Card>
+
+                {canViewBudget && (
+                    <>
+                        <Card>
+                            <CardContent className="p-6">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-sm font-medium text-zinc-500">Budget Allocated</p>
+                                        <p className="text-2xl font-bold">₹{clanData.budgetAllocated?.toLocaleString() || 0}</p>
+                                    </div>
+                                    <DollarSign className="h-8 w-8 text-green-500" />
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardContent className="p-6">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-sm font-medium text-zinc-500">Budget Remaining</p>
+                                        <p className="text-2xl font-bold">₹{((clanData.budgetAllocated || 0) - (clanData.budgetSpent || 0)).toLocaleString()}</p>
+                                    </div>
+                                    <DollarSign className="h-8 w-8 text-blue-500" />
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </>
+                )}
             </div>
 
             {/* Tabs Content */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="flex w-full overflow-x-auto justify-start md:grid md:grid-cols-6">
+                <TabsList className="flex w-full overflow-x-auto justify-start">
                     <TabsTrigger value="overview" className="flex items-center gap-2 shrink-0">
                         <Flag className="h-4 w-4" />
                         Overview
@@ -140,10 +146,12 @@ export default function ClanDetailView({
                         <Calendar className="h-4 w-4" />
                         Events
                     </TabsTrigger>
-                    <TabsTrigger value="budget" className="flex items-center gap-2 shrink-0">
-                        <DollarSign className="h-4 w-4" />
-                        Budget
-                    </TabsTrigger>
+                    {canViewBudget && (
+                        <TabsTrigger value="budget" className="flex items-center gap-2 shrink-0">
+                            <DollarSign className="h-4 w-4" />
+                            Budget
+                        </TabsTrigger>
+                    )}
                     <TabsTrigger value="initiatives" className="flex items-center gap-2 shrink-0">
                         <Lightbulb className="h-4 w-4" />
                         Initiatives
@@ -177,14 +185,16 @@ export default function ClanDetailView({
                     />
                 </TabsContent>
 
+                {canViewBudget && (
                 <TabsContent value="budget" className="space-y-6">
-                    <ClanBudget 
+                    <ClanBudget
                         clan={clanData}
                         events={events}
                         canEdit={isAdmin} // Only admin can edit budget
                         isAdmin={isAdmin}
                     />
                 </TabsContent>
+                )}
 
                 <TabsContent value="initiatives" className="space-y-6">
                     <ClanInitiatives 

@@ -90,6 +90,11 @@ export default async function ClubDetailPage(props) {
     const canPostUpdates = isAdmin ||
         (session.user.role === 'CLUB_HEAD' && (session.user.clubId === id || !session.user.clubId));
 
+    // Budget is sensitive — only Admin, LX, and this club's own head may see it.
+    const canViewBudget = isAdmin ||
+        session.user.role === 'LX_TEAM' ||
+        (session.user.role === 'CLUB_HEAD' && session.user.clubId === id);
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -122,7 +127,7 @@ export default async function ClubDetailPage(props) {
                 <TabsList className="flex w-full overflow-x-auto justify-start sm:w-auto sm:inline-flex">
                     <TabsTrigger value="overview" className="shrink-0">Overview</TabsTrigger>
                     <TabsTrigger value="events" className="shrink-0">Events ({events.length})</TabsTrigger>
-                    <TabsTrigger value="budget" className="shrink-0">Budget</TabsTrigger>
+                    {canViewBudget && <TabsTrigger value="budget" className="shrink-0">Budget</TabsTrigger>}
                     <TabsTrigger value="updates" className="shrink-0">Updates &amp; Blog</TabsTrigger>
                 </TabsList>
 
@@ -130,35 +135,39 @@ export default async function ClubDetailPage(props) {
                 <TabsContent value="overview">
                     <div className="grid gap-6">
                         {/* Key Stats */}
-                        <div className="grid gap-4 md:grid-cols-4">
-                            <Card>
-                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                    <CardTitle className="text-sm font-medium">Budget Allocated</CardTitle>
-                                    <DollarSign className="h-4 w-4 text-zinc-500" />
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="flex items-center gap-2">
-                                        <div className="text-2xl font-bold">₹{club.budgetAllocated.toLocaleString()}</div>
-                                        {isAdmin && (
-                                            <BudgetController
-                                                entityId={club._id}
-                                                entityType="CLUB"
-                                                currentBudget={club.budgetAllocated}
-                                            />
-                                        )}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                            <Card>
-                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                    <CardTitle className="text-sm font-medium">Budget Spent</CardTitle>
-                                    <TrendingUp className="h-4 w-4 text-red-500" />
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-2xl font-bold text-red-600">₹{club.budgetSpent.toLocaleString()}</div>
-                                    <p className="text-xs text-zinc-500 mt-1">{budgetPercentage.toFixed(1)}% used</p>
-                                </CardContent>
-                            </Card>
+                        <div className={`grid gap-4 ${canViewBudget ? 'md:grid-cols-4' : 'sm:grid-cols-2'}`}>
+                            {canViewBudget && (
+                                <>
+                                    <Card>
+                                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                            <CardTitle className="text-sm font-medium">Budget Allocated</CardTitle>
+                                            <DollarSign className="h-4 w-4 text-zinc-500" />
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="flex items-center gap-2">
+                                                <div className="text-2xl font-bold">₹{club.budgetAllocated.toLocaleString()}</div>
+                                                {isAdmin && (
+                                                    <BudgetController
+                                                        entityId={club._id}
+                                                        entityType="CLUB"
+                                                        currentBudget={club.budgetAllocated}
+                                                    />
+                                                )}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                    <Card>
+                                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                            <CardTitle className="text-sm font-medium">Budget Spent</CardTitle>
+                                            <TrendingUp className="h-4 w-4 text-red-500" />
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="text-2xl font-bold text-red-600">₹{club.budgetSpent.toLocaleString()}</div>
+                                            <p className="text-xs text-zinc-500 mt-1">{budgetPercentage.toFixed(1)}% used</p>
+                                        </CardContent>
+                                    </Card>
+                                </>
+                            )}
                             <Card>
                                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                     <CardTitle className="text-sm font-medium">Events Hosted</CardTitle>
@@ -240,6 +249,7 @@ export default async function ClubDetailPage(props) {
                 </TabsContent>
 
                 {/* BUDGET TAB */}
+                {canViewBudget && (
                 <TabsContent value="budget">
                     <div className="grid gap-6">
                         <Card>
@@ -281,6 +291,7 @@ export default async function ClubDetailPage(props) {
                         </Card>
                     </div>
                 </TabsContent>
+                )}
 
                 {/* UPDATES / BLOG TAB */}
                 <TabsContent value="updates">

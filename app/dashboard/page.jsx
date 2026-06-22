@@ -81,6 +81,7 @@ function getQuickActions(userType) {
         ],
         LX: [
             { label: 'Approvals', href: '/dashboard/approvals', icon: CheckSquare },
+            { label: 'Budget', href: '/dashboard/budget', icon: BarChart2 },
             { label: 'Create Event', href: '/dashboard/events/create', icon: Zap },
             { label: 'Analytics', href: '/dashboard/analytics', icon: TrendingUp },
         ],
