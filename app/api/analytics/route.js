@@ -53,6 +53,29 @@ export async function GET(request) {
             color: clan.color,
         })).sort((a, b) => b.points - a.points);
 
+        // Budget by semester — current + historical, across clubs and clans.
+        const SEASON_RANK = { spring: 0, summer: 1, fall: 2, autumn: 2, winter: 3 };
+        const semesterMap = {};
+        const addSem = (sem, alloc, spent) => {
+            if (!sem) return;
+            if (!semesterMap[sem]) semesterMap[sem] = { allocated: 0, spent: 0 };
+            semesterMap[sem].allocated += alloc || 0;
+            semesterMap[sem].spent += spent || 0;
+        };
+        [...clubs, ...clans].forEach(e => {
+            addSem(e.semester, e.budgetAllocated, e.budgetSpent);
+            (e.budgetHistory || []).forEach(h => addSem(h.semester, h.budgetAllocated, h.budgetSpent));
+        });
+        const sortKey = (s) => {
+            const parts = s.toLowerCase().split(/\s+/);
+            const year = parseInt(parts.find(p => /^\d{4}$/.test(p)) || '0', 10);
+            const season = SEASON_RANK[parts[0]] ?? 9;
+            return year * 10 + season;
+        };
+        const budgetBySemester = Object.entries(semesterMap)
+            .map(([semester, v]) => ({ semester, ...v }))
+            .sort((a, b) => sortKey(a.semester) - sortKey(b.semester));
+
         // Stats
         const stats = {
             totalEvents: events.length,
@@ -66,6 +89,7 @@ export async function GET(request) {
             clubActivity,
             eventsByType,
             budgetTrends,
+            budgetBySemester,
             clanPerformance,
             stats,
         });

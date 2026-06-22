@@ -11,6 +11,7 @@ import { Plus, Users, DollarSign, Calendar, TrendingUp, Trophy, FileText, Image 
 import Link from 'next/link';
 import ClubUpdates from '@/components/clubs/club-updates';
 import BudgetController from '@/components/admin/budget-controller';
+import SemesterBudget from '@/components/budget/semester-budget';
 import { getDashboardSession } from '@/lib/dashboard-session';
 
 async function getClubData(id, session) {
@@ -252,6 +253,15 @@ export default async function ClubDetailPage(props) {
                 {canViewBudget && (
                 <TabsContent value="budget">
                     <div className="grid gap-6">
+                        <SemesterBudget
+                            entityType="club"
+                            entityId={club._id}
+                            semester={club.semester}
+                            budgetAllocated={club.budgetAllocated}
+                            budgetSpent={club.budgetSpent}
+                            budgetHistory={club.budgetHistory || []}
+                            isAdmin={isAdmin}
+                        />
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between">
                                 <CardTitle>Financial Overview</CardTitle>

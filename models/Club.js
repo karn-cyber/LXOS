@@ -30,6 +30,12 @@ const ClubSchema = new mongoose.Schema({
         required: true,
         default: 'Spring 2026',
     },
+    // Snapshots of past semesters' budgets so heads/LX/admin can look back.
+    budgetHistory: [{
+        semester: { type: String, required: true },
+        budgetAllocated: { type: Number, default: 0 },
+        budgetSpent: { type: Number, default: 0 },
+    }],
     isActive: {
         type: Boolean,
         default: true,

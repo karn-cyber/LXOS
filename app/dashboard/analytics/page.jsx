@@ -45,6 +45,7 @@ export default function AnalyticsPage() {
   const [data, setData] = useState({
     clubActivity: [],
     budgetTrends: [],
+    budgetBySemester: [],
     eventsByType: [],
     clanPerformance: [],
     stats: { totalEvents: 0, totalBudget: 0, totalExpenses: 0, totalAchievements: 0 },
@@ -130,6 +131,22 @@ export default function AnalyticsPage() {
               <BarChart data={data.budgetTrends}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f4f4f5" />
                 <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 10 }} />
+                <Tooltip {...tooltipStyle} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Bar dataKey="allocated" fill="#15803d" name="Allocated" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="spent" fill="#dc2626" name="Spent" radius={[3, 3, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </ChartCard>
+
+        <ChartCard title="Budget by Semester" subtitle="Allocated vs spent across all clubs & clans, by term">
+          {(!data.budgetBySemester || data.budgetBySemester.length === 0) ? <EmptyChart label="semester budget" /> : (
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={data.budgetBySemester}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f4f4f5" />
+                <XAxis dataKey="semester" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 10 }} />
                 <Tooltip {...tooltipStyle} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />

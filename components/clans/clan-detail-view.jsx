@@ -23,6 +23,7 @@ import ClanEvents from './clan-events';
 import ClanBudget from './clan-budget';
 import ClanInitiatives from './clan-initiatives';
 import ClanBlog from './clan-blog';
+import SemesterBudget from '@/components/budget/semester-budget';
 import PointsManager from './points-manager';
 import LeaderboardCharts from './leaderboard-charts';
 
@@ -187,6 +188,15 @@ export default function ClanDetailView({
 
                 {canViewBudget && (
                 <TabsContent value="budget" className="space-y-6">
+                    <SemesterBudget
+                        entityType="clan"
+                        entityId={clanData._id}
+                        semester={clanData.semester}
+                        budgetAllocated={clanData.budgetAllocated}
+                        budgetSpent={clanData.budgetSpent}
+                        budgetHistory={clanData.budgetHistory || []}
+                        isAdmin={isAdmin}
+                    />
                     <ClanBudget
                         clan={clanData}
                         events={events}
