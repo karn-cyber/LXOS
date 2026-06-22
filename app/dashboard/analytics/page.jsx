@@ -6,6 +6,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 import { Loader2 } from 'lucide-react';
+import BudgetReport from '@/components/budget/budget-report';
 
 const COLORS = ['#7f1d1d', '#991b1b', '#1d4ed8', '#15803d', '#7c3aed'];
 
@@ -46,6 +47,8 @@ export default function AnalyticsPage() {
     clubActivity: [],
     budgetTrends: [],
     budgetBySemester: [],
+    budgetEntities: [],
+    allSemesters: [],
     eventsByType: [],
     clanPerformance: [],
     stats: { totalEvents: 0, totalBudget: 0, totalExpenses: 0, totalAchievements: 0 },
@@ -173,6 +176,9 @@ export default function AnalyticsPage() {
           )}
         </ChartCard>
       </div>
+
+      {/* Downloadable per-semester budget report */}
+      <BudgetReport entities={data.budgetEntities} semesters={data.allSemesters} />
     </div>
   );
 }

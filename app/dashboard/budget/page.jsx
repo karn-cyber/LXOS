@@ -5,12 +5,13 @@ import Club from '@/models/Club';
 import Clan from '@/models/Clan';
 import Expense from '@/models/Expense';
 import { getDashboardSession } from '@/lib/dashboard-session';
+import SemesterRollover from '@/components/budget/semester-rollover';
 
 async function getBudgetData() {
     await dbConnect();
     const [clubs, clans, expenses] = await Promise.all([
-        Club.find({ isActive: true }).select('name budgetAllocated budgetSpent category').lean(),
-        Clan.find().select('name budgetAllocated budgetSpent color').lean(),
+        Club.find({ isActive: true }).select('name budgetAllocated budgetSpent category semester').lean(),
+        Clan.find().select('name budgetAllocated budgetSpent color semester').lean(),
         Expense.find({ status: 'APPROVED' }).select('amount category').lean(),
     ]);
 
@@ -63,6 +64,7 @@ async function BudgetContent() {
     if (!['ADMIN', 'FINANCE', 'LX_TEAM'].includes(session.user.role)) redirect('/dashboard');
 
     const { clubs, clans, totals, expensesByCategory } = await getBudgetData();
+    const canManageSemester = ['ADMIN', 'LX_TEAM'].includes(session.user.role);
 
     const overallAllocated = totals.clubAllocated + totals.clanAllocated;
     const overallSpent = totals.clubSpent + totals.clanSpent;
@@ -77,6 +79,10 @@ async function BudgetContent() {
                     ₹{overallAllocated.toLocaleString()} total · {overallPct.toFixed(1)}% utilised
                 </p>
             </div>
+
+            {canManageSemester && (
+                <SemesterRollover currentSemesters={[...clubs.map(c => c.semester), ...clans.map(c => c.semester)].filter(Boolean)} />
+            )}
 
             {/* Summary strip */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

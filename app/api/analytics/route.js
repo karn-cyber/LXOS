@@ -14,6 +14,10 @@ export async function GET(request) {
         if (!session) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
+        // Analytics (incl. budget figures) is for Admin / LX / Finance only.
+        if (!['ADMIN', 'LX_TEAM', 'FINANCE'].includes(session.user.role)) {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
 
         await dbConnect();
 
@@ -54,7 +58,7 @@ export async function GET(request) {
         })).sort((a, b) => b.points - a.points);
 
         // Budget by semester — current + historical, across clubs and clans.
-        const SEASON_RANK = { spring: 0, summer: 1, fall: 2, autumn: 2, winter: 3 };
+        const SEASON_RANK = { holi: 0, spring: 0, summer: 1, diwali: 2, fall: 2, autumn: 2, winter: 3 };
         const semesterMap = {};
         const addSem = (sem, alloc, spent) => {
             if (!sem) return;
@@ -76,6 +80,18 @@ export async function GET(request) {
             .map(([semester, v]) => ({ semester, ...v }))
             .sort((a, b) => sortKey(a.semester) - sortKey(b.semester));
 
+        // Per-entity, per-semester figures for the downloadable report.
+        const entityRow = (e, type) => {
+            const bySemester = { [e.semester]: { allocated: e.budgetAllocated || 0, spent: e.budgetSpent || 0 } };
+            (e.budgetHistory || []).forEach(h => { bySemester[h.semester] = { allocated: h.budgetAllocated || 0, spent: h.budgetSpent || 0 }; });
+            return { name: e.name, type, current: e.semester, bySemester };
+        };
+        const budgetEntities = [
+            ...clubs.map(c => entityRow(c, 'Club')),
+            ...clans.map(c => entityRow(c, 'Clan')),
+        ];
+        const allSemesters = budgetBySemester.map(b => b.semester);
+
         // Stats
         const stats = {
             totalEvents: events.length,
@@ -90,6 +106,8 @@ export async function GET(request) {
             eventsByType,
             budgetTrends,
             budgetBySemester,
+            budgetEntities,
+            allSemesters,
             clanPerformance,
             stats,
         });
