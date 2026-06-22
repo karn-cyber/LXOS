@@ -118,7 +118,6 @@ async function ClansContent() {
 
     const clans = await getClanData();
     const isAdmin = session.user.role === 'ADMIN';
-    const isLX = session.user.role === 'LX_TEAM';
     const isClanHead = session.user.role === 'CLAN_HEAD';
 
     if (isClanHead && session.user.clanId) {
@@ -260,8 +259,7 @@ async function ClansContent() {
                                         </div>
                                     </div>
 
-                                    {/* Budget — only Admin / LX on this overview list */}
-                                    {(isAdmin || isLX) && (
+                                    {/* Budget */}
                                     <div className="space-y-1.5">
                                         <div className="flex justify-between text-[11px] text-zinc-400 gap-2">
                                             <span className="shrink-0">Budget utilisation</span>
@@ -276,7 +274,6 @@ async function ClansContent() {
                                             />
                                         </div>
                                     </div>
-                                    )}
 
                                     {/* Stats pills */}
                                     <div className="flex flex-wrap gap-1.5 pt-1">

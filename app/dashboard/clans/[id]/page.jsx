@@ -160,7 +160,7 @@ export default async function ClanDetailPage({ params }) {
                 events={events}
                 user={user}
                 isAdmin={user.role === 'ADMIN'}
-                isClanLeader={user.clanId === id}
+                isClanLeader={user.role === 'CLAN_HEAD' && (user.clanId === id || !user.clanId)}
             />
         </Suspense>
     );

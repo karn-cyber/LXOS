@@ -42,7 +42,6 @@ async function ClubsContent() {
 
     const clubs = await getClubs();
     const isAdmin = session.user.role === 'ADMIN';
-    const isLX = session.user.role === 'LX_TEAM';
 
     return (
         <div className="space-y-8">
@@ -73,7 +72,6 @@ async function ClubsContent() {
                             ? (club.budgetSpent / club.budgetAllocated) * 100
                             : 0;
                         const remaining = club.budgetAllocated - club.budgetSpent;
-                        const canSeeBudget = isAdmin || isLX || session.user.clubId === club._id;
 
                         return (
                             <Link key={club._id} href={`/dashboard/clubs/${club._id}`} className="group block">
@@ -91,17 +89,15 @@ async function ClubsContent() {
                                         <p className="text-xs text-zinc-400 mt-1.5 line-clamp-2">{club.description}</p>
                                     </div>
 
-                                    {canSeeBudget && (
-                                        <div className="mt-4 space-y-1.5">
-                                            <ProgressBar pct={pct} critical={pct > 90} />
-                                            <div className="flex justify-between text-[11px] text-zinc-400">
-                                                <span>₹{club.budgetSpent.toLocaleString()} spent</span>
-                                                <span className={remaining < 0 ? 'text-red-400' : 'text-zinc-500'}>
-                                                    ₹{Math.max(0, remaining).toLocaleString()} left
-                                                </span>
-                                            </div>
+                                    <div className="mt-4 space-y-1.5">
+                                        <ProgressBar pct={pct} critical={pct > 90} />
+                                        <div className="flex justify-between text-[11px] text-zinc-400">
+                                            <span>₹{club.budgetSpent.toLocaleString()} spent</span>
+                                            <span className={remaining < 0 ? 'text-red-400' : 'text-zinc-500'}>
+                                                ₹{Math.max(0, remaining).toLocaleString()} left
+                                            </span>
                                         </div>
-                                    )}
+                                    </div>
                                 </div>
                             </Link>
                         );

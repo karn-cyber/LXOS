@@ -13,7 +13,7 @@ A production-ready, enterprise-grade university operations platform for managing
   - Session management
 
 - **Dashboard**
-  - Statistics overview (total events, active clubs, clans, upcoming events)
+  - Statistics overview (total events completed, active clubs, clans, upcoming events (next 30 days))
   - Recent events list
   - Role-based welcome message
 
