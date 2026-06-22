@@ -6,7 +6,7 @@ import { useClerk, useUser } from '@clerk/nextjs';
 import {
   Calendar, CalendarDays, Users, Flag, Building2, Wallet,
   Trophy, BarChart3, Folder, CheckCircle, LogOut, Menu, X,
-  LayoutDashboard, Newspaper, ChevronRight,
+  LayoutDashboard, Newspaper, ChevronRight, KeyRound,
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useState, useEffect } from 'react';
@@ -26,6 +26,7 @@ const navigation = [
   { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3, permission: PERMISSIONS.VIEW_ANALYTICS },
   { name: 'Reimbursements', href: '/dashboard/files', icon: Folder, permission: null },
   { name: 'Approvals', href: '/dashboard/approvals', icon: CheckCircle, permission: PERMISSIONS.APPROVE_EVENT },
+  { name: 'Access', href: '/dashboard/access', icon: KeyRound, permission: PERMISSIONS.MANAGE_USERS },
 ];
 
 const ROLE_META = {

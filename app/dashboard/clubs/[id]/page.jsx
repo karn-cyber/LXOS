@@ -87,13 +87,13 @@ export default async function ClubDetailPage(props) {
     // A club head may post updates to their own club. Heads who aren't yet
     // linked to a specific club (clubId not set) are allowed too, so they aren't
     // blocked while admins finish linking them.
-    const canPostUpdates = isAdmin ||
-        (session.user.role === 'CLUB_HEAD' && (session.user.clubId === id || !session.user.clubId));
+    // Access is linkage-based: anyone whose account is assigned to this club
+    // (via Access Management) is treated as its head — supports dual roles.
+    const isClubHead = session.user.clubId === id;
+    const canPostUpdates = isAdmin || isClubHead;
 
-    // Budget is sensitive — only Admin, LX, and this club's own head may see it.
-    const canViewBudget = isAdmin ||
-        session.user.role === 'LX_TEAM' ||
-        (session.user.role === 'CLUB_HEAD' && session.user.clubId === id);
+    // Budget is sensitive — only Admin, LX, and this club's own head(s).
+    const canViewBudget = isAdmin || session.user.role === 'LX_TEAM' || isClubHead;
 
     return (
         <div className="space-y-6">
