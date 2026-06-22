@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { Loader2, X, UserPlus, Search, Flag, Users, Shield } from 'lucide-react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { Loader2, X, UserPlus, Search, Flag, Users, Shield, UserCircle } from 'lucide-react';
 
 // Searchable RU-directory picker. Calls back with the chosen { email, name }.
 function AddPicker({ onPick, placeholder }) {
@@ -128,6 +128,21 @@ export default function AccessManager() {
     const assign = (payload, key) => mutate('POST', payload, key);
     const remove = (payload, key) => mutate('DELETE', payload, key);
 
+    // Combined per-person view: one row per email with all their roles.
+    const people = useMemo(() => {
+        if (!data) return [];
+        const map = {};
+        const add = (h, label) => {
+            const key = h.email;
+            if (!map[key]) map[key] = { name: h.name, email: h.email, roles: [] };
+            map[key].roles.push(label);
+        };
+        data.clubs.forEach(c => c.heads.forEach(h => add(h, `${c.name} head`)));
+        data.clans.forEach(c => c.heads.forEach(h => add(h, `${c.name} head`)));
+        data.lxMembers.forEach(m => add(m, 'LX'));
+        return Object.values(map).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    }, [data]);
+
     if (!data) {
         return <div className="flex items-center gap-2 text-sm text-zinc-400 py-10"><Loader2 className="h-4 w-4 animate-spin" /> Loading access…</div>;
     }
@@ -170,6 +185,35 @@ export default function AccessManager() {
     return (
         <div className="space-y-8 max-w-3xl">
             {error && <p className="text-sm text-red-500 bg-red-50 dark:bg-red-950/30 rounded-lg px-3 py-2">{error}</p>}
+
+            {/* Combined overview — who has what access */}
+            <div className="space-y-3">
+                <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 flex items-center gap-2">
+                    <UserCircle className="h-4 w-4 text-zinc-400" /> People &amp; Access
+                    <span className="text-xs font-normal text-zinc-400">({people.length})</span>
+                </h2>
+                {people.length === 0 ? (
+                    <p className="text-xs text-zinc-400">No access granted yet — assign people below.</p>
+                ) : (
+                    <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl divide-y divide-zinc-50 dark:divide-zinc-800">
+                        {people.map((p) => (
+                            <div key={p.email} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-4 py-3">
+                                <div className="min-w-0">
+                                    <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">{p.name}</p>
+                                    <p className="text-[11px] text-zinc-400 truncate">{p.email}</p>
+                                </div>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {p.roles.map((r, i) => (
+                                        <span key={i} className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${r === 'LX' ? 'text-purple-600 bg-purple-50 dark:bg-purple-950/30' : 'text-blue-600 bg-blue-50 dark:bg-blue-950/30'}`}>
+                                            {r}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
 
             <EntitySection title="Club Heads" icon={Users} items={data.clubs} type="club" idKey="clubId" />
             <EntitySection title="Clan Heads" icon={Flag} items={data.clans} type="clan" idKey="clanId" />
