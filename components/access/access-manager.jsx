@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Loader2, X, UserPlus, Search, Flag, Users, Shield, UserCircle } from 'lucide-react';
+import { Loader2, X, UserPlus, Search, Flag, Users, Shield, UserCircle, Wallet } from 'lucide-react';
 
 // Searchable RU-directory picker. Calls back with the chosen { email, name }.
 function AddPicker({ onPick, placeholder }) {
@@ -140,6 +140,7 @@ export default function AccessManager() {
         data.clubs.forEach(c => c.heads.forEach(h => add(h, `${c.name} head`)));
         data.clans.forEach(c => c.heads.forEach(h => add(h, `${c.name} head`)));
         data.lxMembers.forEach(m => add(m, 'LX'));
+        (data.financeMembers || []).forEach(m => add(m, 'Finance'));
         return Object.values(map).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     }, [data]);
 
@@ -204,7 +205,7 @@ export default function AccessManager() {
                                 </div>
                                 <div className="flex flex-wrap gap-1.5">
                                     {p.roles.map((r, i) => (
-                                        <span key={i} className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${r === 'LX' ? 'text-purple-600 bg-purple-50 dark:bg-purple-950/30' : 'text-blue-600 bg-blue-50 dark:bg-blue-950/30'}`}>
+                                        <span key={i} className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${r === 'LX' ? 'text-purple-600 bg-purple-50 dark:bg-purple-950/30' : r === 'Finance' ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30' : 'text-blue-600 bg-blue-50 dark:bg-blue-950/30'}`}>
                                             {r}
                                         </span>
                                     ))}
@@ -239,6 +240,34 @@ export default function AccessManager() {
                                     email={m.email}
                                     busy={busyKey === `lx-${m.email}`}
                                     onRemove={() => remove({ email: m.email, type: 'lx' }, `lx-${m.email}`)}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Finance team */}
+            <div className="space-y-3">
+                <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 flex items-center gap-2">
+                    <Wallet className="h-4 w-4 text-zinc-400" /> Finance Team
+                </h2>
+                <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl p-4">
+                    <div className="flex items-center justify-between gap-3 mb-2">
+                        <span className="text-xs text-zinc-400">Limited access — reimbursements, budgets &amp; approvals only.</span>
+                        <AddPicker onPick={(u) => assign({ email: u.email, name: u.name, type: 'finance' }, 'finance-add')} />
+                    </div>
+                    {(data.financeMembers || []).length === 0 ? (
+                        <p className="text-xs text-zinc-400">No finance members yet.</p>
+                    ) : (
+                        <div className="flex flex-wrap gap-2">
+                            {data.financeMembers.map((m) => (
+                                <HeadChip
+                                    key={m._id}
+                                    name={m.name}
+                                    email={m.email}
+                                    busy={busyKey === `finance-${m.email}`}
+                                    onRemove={() => remove({ email: m.email, type: 'finance' }, `finance-${m.email}`)}
                                 />
                             ))}
                         </div>

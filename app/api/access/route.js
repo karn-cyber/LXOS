@@ -33,7 +33,7 @@ export async function GET() {
     const [clubs, clans, users] = await Promise.all([
         Club.find().select('name').sort({ name: 1 }).lean(),
         Clan.find().select('name color').sort({ name: 1 }).lean(),
-        User.find({ $or: [{ clubId: { $ne: null } }, { clanId: { $ne: null } }, { role: 'LX_TEAM' }] })
+        User.find({ $or: [{ clubId: { $ne: null } }, { clanId: { $ne: null } }, { role: 'LX_TEAM' }, { role: 'FINANCE' }] })
             .select('name email role clubId clanId').lean(),
     ]);
 
@@ -45,6 +45,7 @@ export async function GET() {
         clubs: clubs.map(c => ({ _id: c._id.toString(), name: c.name, heads: heads(users, 'clubId', c._id) })),
         clans: clans.map(c => ({ _id: c._id.toString(), name: c.name, color: c.color, heads: heads(users, 'clanId', c._id) })),
         lxMembers: users.filter(u => u.role === 'LX_TEAM').map(u => ({ _id: u._id.toString(), name: u.name, email: u.email })),
+        financeMembers: users.filter(u => u.role === 'FINANCE').map(u => ({ _id: u._id.toString(), name: u.name, email: u.email })),
     });
 }
 
@@ -74,6 +75,8 @@ export async function POST(request) {
         if (!PROTECTED.includes(user.role) && user.role !== 'LX_TEAM' && user.role !== 'CLUB_HEAD') user.role = 'CLAN_HEAD';
     } else if (type === 'lx') {
         user.role = 'LX_TEAM'; // keeps any existing club/clan linkage
+    } else if (type === 'finance') {
+        user.role = 'FINANCE'; // keeps any existing club/clan linkage
     } else {
         return NextResponse.json({ error: 'Invalid type' }, { status: 400 });
     }
@@ -102,6 +105,8 @@ export async function DELETE(request) {
         user.role = roleFromLinkage(user);
     } else if (type === 'lx') {
         if (user.role === 'LX_TEAM') user.role = roleFromLinkage({ ...user.toObject(), role: 'GUEST' });
+    } else if (type === 'finance') {
+        if (user.role === 'FINANCE') user.role = roleFromLinkage({ ...user.toObject(), role: 'GUEST' });
     } else {
         return NextResponse.json({ error: 'Invalid type' }, { status: 400 });
     }
